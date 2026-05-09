@@ -48,7 +48,9 @@ const WORDLIST: WordDef[] = [
   { word: "fucktard", severity: "strong", group: "fuck" },
   { word: "fuckface", severity: "strong", group: "fuck" },
   { word: "fuckhead", severity: "strong", group: "fuck" },
+  { word: "fucksake", severity: "strong", group: "fuck" },
   // Typos — transpositions
+  { word: "fuckssake", severity: "strong", group: "fuck" },
   { word: "fukc", severity: "strong", group: "fuck" },
   { word: "fukcing", severity: "strong", group: "fuck" },
   { word: "fukced", severity: "strong", group: "fuck" },
@@ -140,8 +142,15 @@ const WORDLIST: WordDef[] = [
   // === HELL (mild) ===
   { word: "hell", severity: "mild", group: "hell" },
 
+  // === Abbreviations (strong) ===
+  { word: "mf", severity: "strong", group: "fuck" },
+  { word: "fu", severity: "strong", group: "fuck" },
+
   // === Abbreviations (mild) ===
+  { word: "ffs", severity: "mild", group: "fuck" },
   { word: "wtf", severity: "mild", group: "wtf" },
+  { word: "wtaf", severity: "mild", group: "wtf" },
+  { word: "tf", severity: "mild", group: "wtf" },
   { word: "stfu", severity: "mild", group: "stfu" },
   { word: "lmfao", severity: "mild", group: "lmfao" },
   { word: "lmao", severity: "mild", group: "lmao" },
@@ -149,6 +158,16 @@ const WORDLIST: WordDef[] = [
   // === CUNT (strong) ===
   { word: "cunt", severity: "strong", group: "cunt" },
   { word: "cunts", severity: "strong", group: "cunt" },
+
+  // === RETARD (strong) ===
+  { word: "retard", severity: "strong", group: "retard" },
+  { word: "retarded", severity: "strong", group: "retard" },
+
+  // === STUPID (moderate) ===
+  { word: "stupid", severity: "moderate", group: "stupid" },
+  { word: "idiot", severity: "moderate", group: "stupid" },
+  { word: "dumb", severity: "moderate", group: "stupid" },
+  { word: "dummy", severity: "moderate", group: "stupid" },
 ];
 
 /**
