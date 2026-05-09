@@ -76,16 +76,7 @@ async function* parsePiProjectSessions(
       continue;
     }
 
-    const fullPath = join(dir, entry);
-    const fileStat = await stat(fullPath).catch(() => null);
-    if (!fileStat?.isFile()) {
-      continue;
-    }
-    if (context.since && fileStat.mtime < context.since) {
-      continue;
-    }
-
-    yield* parsePiJsonl(fullPath, {
+    yield* parsePiJsonl(join(dir, entry), {
       session: entry.replace(".jsonl", ""),
       project: context.project,
       since: context.since,
@@ -148,10 +139,10 @@ function contentToString(content: unknown): string | null {
   if (Array.isArray(content)) {
     const parts = content
       .filter(
-        (p): p is { text: string } =>
+        (p): p is { type: string; text: string } =>
           typeof p === "object" &&
           p !== null &&
-          "text" in p &&
+          p.type === "text" &&
           typeof p.text === "string",
       )
       .map((p) => p.text);
