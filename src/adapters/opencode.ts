@@ -49,15 +49,12 @@ export function opencodeAdapter(): Adapter {
       const dbPath = getOpencodeDatabasePath();
       if (!dbPath) return;
 
-      // Dynamic import so the CLI doesn't crash if better-sqlite3 isn't available
-      let db: import("better-sqlite3").Database;
+      let db: SqliteDatabase;
       try {
-        const BetterSqlite3 = await import("better-sqlite3");
-        const Ctor = BetterSqlite3.default ?? BetterSqlite3;
-        db = new (Ctor as unknown as new (...args: unknown[]) => import("better-sqlite3").Database)(dbPath, { readonly: true });
+        db = await openSqliteDatabase(dbPath);
       } catch {
         console.warn(
-          "devrage: better-sqlite3 not available, skipping OpenCode sessions",
+          "devrage: SQLite driver not available, skipping OpenCode sessions",
         );
         return;
       }
@@ -72,7 +69,7 @@ export function opencodeAdapter(): Adapter {
 }
 
 function* queryUserMessages(
-  db: import("better-sqlite3").Database,
+  db: SqliteDatabase,
   options?: AdapterOptions,
 ): Generator<Message> {
   // Query: join message + part, filter to user role and text parts
@@ -108,5 +105,31 @@ function* queryUserMessages(
       timestamp: new Date(row.time_created).toISOString(),
       session: row.session_id,
     };
+  }
+}
+
+type SqliteDatabase = {
+  prepare(sql: string): {
+    get(): unknown;
+    all(): unknown[];
+  };
+  close(): void;
+};
+
+async function openSqliteDatabase(path: string): Promise<SqliteDatabase> {
+  // Try better-sqlite3 first (Node.js)
+  try {
+    const BetterSqlite3 = await import("better-sqlite3");
+    const Ctor = BetterSqlite3.default ?? BetterSqlite3;
+    return new (Ctor as unknown as new (...args: unknown[]) => SqliteDatabase)(
+      path,
+      { readonly: true },
+    );
+  } catch {
+    // Fall back to bun:sqlite (Bun runtime)
+    // @ts-ignore bun:sqlite is only available in the Bun runtime
+    const mod = await import("bun:sqlite");
+    const Ctor = mod.Database;
+    return new Ctor(path, { readonly: true });
   }
 }
