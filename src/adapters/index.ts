@@ -3,6 +3,7 @@ import { claudeAdapter } from "./claude";
 import { clineAdapter } from "./cline";
 import { codexAdapter } from "./codex";
 import { opencodeAdapter } from "./opencode";
+import { piAdapter } from "./pi";
 import { zedAdapter } from "./zed";
 
 export interface Message {
@@ -29,6 +30,7 @@ const ADAPTERS: Record<string, () => Adapter> = {
   amp: ampAdapter,
   cline: clineAdapter,
   zed: zedAdapter,
+  pi: piAdapter,
 };
 
 export function createAdapter(name: string): Adapter {

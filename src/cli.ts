@@ -20,6 +20,7 @@ Options:
 Examples:
   devrage scan
   devrage scan --agent claude
+  devrage scan --agent pi
   devrage scan --since 2025-01-01`);
 }
 
