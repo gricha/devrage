@@ -199,8 +199,10 @@ const WORDLIST: WordDef[] = [
   { word: "jodanse", severity: "strong", group: "joder" },
 
   // === COÑO family (strong) — "fuck" (Spain) ===
+  // Note: only the accented form is listed. The de-accented "cono"
+  // false-matches inside "ícono" / "íconos" because `í` is a non-word
+  // char in JS regex, creating an artificial \b boundary.
   { word: "coño", severity: "strong", group: "cono" },
-  { word: "cono", severity: "strong", group: "cono" },
   { word: "coñazo", severity: "strong", group: "cono" },
 
   // === CABRÓN family (strong) — "bastard" ===
@@ -357,10 +359,11 @@ const WORDLIST: WordDef[] = [
   { word: "cresta", severity: "moderate", group: "cresta" },
   { word: "crestazo", severity: "moderate", group: "cresta" },
 
-  // === GIL family (moderate) — Chilean "idiot" ===
-  { word: "gil", severity: "moderate", group: "gil" },
-  { word: "giles", severity: "moderate", group: "gil" },
-  { word: "gila", severity: "moderate", group: "gil" },
+  // === GIL family — INTENTIONALLY OMITTED ===
+  // "gil" is real Chilean slang ("idiot") but it's only 3 chars and
+  // false-matches inside "ágil" / "frágil" / "frágiles" because the
+  // accented vowel acts as a non-word char in JS regex. In tech corpora
+  // (agile methodology, etc.) the noise dominates true usage. Skipped.
 
   // === CAGAR family (strong) — "to shit / fuck up" ===
   // (Chilean "la cagaste" is everyday but still profanity-tier)
