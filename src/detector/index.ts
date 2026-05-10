@@ -149,6 +149,256 @@ const WORDLIST: WordDef[] = [
   // === CUNT (strong) ===
   { word: "cunt", severity: "strong", group: "cunt" },
   { word: "cunts", severity: "strong", group: "cunt" },
+
+  // ============================================================
+  // SPANISH (es) — covers general Spanish + Chilean (es-CL) slang
+  // ============================================================
+  // Notes:
+  // - Both accented and non-accented forms are listed (people type
+  //   "weon" and "weón" both — phones autocorrect, devs skip accents).
+  // - Severity reflects how the word is *used as a swear*, not its
+  //   dictionary meaning. e.g. "weón" in Chile is often a filler/buddy
+  //   word but it's still classified as profanity → moderate.
+  // - Group names are kept ASCII for stable rollup output.
+
+  // === MIERDA family (strong) — "shit" ===
+  { word: "mierda", severity: "strong", group: "mierda" },
+  { word: "mierdas", severity: "strong", group: "mierda" },
+  { word: "mierdero", severity: "strong", group: "mierda" },
+  { word: "amierdado", severity: "strong", group: "mierda" },
+  // Typos
+  { word: "miedra", severity: "strong", group: "mierda" },
+  { word: "mierdaa", severity: "strong", group: "mierda" },
+
+  // === PUTA / PUTO family (strong) — "whore / fucking" ===
+  { word: "puta", severity: "strong", group: "puta" },
+  { word: "putas", severity: "strong", group: "puta" },
+  { word: "puto", severity: "strong", group: "puta" },
+  { word: "putos", severity: "strong", group: "puta" },
+  { word: "putear", severity: "strong", group: "puta" },
+  { word: "puteado", severity: "strong", group: "puta" },
+  { word: "putada", severity: "strong", group: "puta" },
+  { word: "putamadre", severity: "strong", group: "puta" },
+  { word: "putamadres", severity: "strong", group: "puta" },
+  // Common abbreviations
+  { word: "hdp", severity: "strong", group: "puta" }, // hijo de puta
+  { word: "hdpta", severity: "strong", group: "puta" },
+  { word: "lpm", severity: "strong", group: "puta" }, // la puta madre
+  { word: "ptm", severity: "strong", group: "puta" }, // puta madre
+
+  // === JODER family (strong) — "fuck" (Spain/general) ===
+  { word: "joder", severity: "strong", group: "joder" },
+  { word: "jode", severity: "strong", group: "joder" },
+  { word: "jodes", severity: "strong", group: "joder" },
+  { word: "jodido", severity: "strong", group: "joder" },
+  { word: "jodida", severity: "strong", group: "joder" },
+  { word: "jodidos", severity: "strong", group: "joder" },
+  { word: "jodidas", severity: "strong", group: "joder" },
+  { word: "jodiendo", severity: "strong", group: "joder" },
+  { word: "jodete", severity: "strong", group: "joder" },
+  { word: "jodanse", severity: "strong", group: "joder" },
+
+  // === COÑO family (strong) — "fuck" (Spain) ===
+  { word: "coño", severity: "strong", group: "cono" },
+  { word: "cono", severity: "strong", group: "cono" },
+  { word: "coñazo", severity: "strong", group: "cono" },
+
+  // === CABRÓN family (strong) — "bastard" ===
+  { word: "cabrón", severity: "strong", group: "cabron" },
+  { word: "cabron", severity: "strong", group: "cabron" },
+  { word: "cabrones", severity: "strong", group: "cabron" },
+  { word: "cabrona", severity: "strong", group: "cabron" },
+  { word: "cabronas", severity: "strong", group: "cabron" },
+  { word: "cabreado", severity: "moderate", group: "cabron" },
+  { word: "cabreada", severity: "moderate", group: "cabron" },
+
+  // === PENDEJO family (strong) — "asshole" (LatAm) ===
+  { word: "pendejo", severity: "strong", group: "pendejo" },
+  { word: "pendeja", severity: "strong", group: "pendejo" },
+  { word: "pendejos", severity: "strong", group: "pendejo" },
+  { word: "pendejas", severity: "strong", group: "pendejo" },
+  { word: "pendejada", severity: "strong", group: "pendejo" },
+  { word: "pendejadas", severity: "strong", group: "pendejo" },
+
+  // === CHINGAR family (strong) — "fuck" (Mexico, also used elsewhere) ===
+  { word: "chingar", severity: "strong", group: "chingar" },
+  { word: "chinga", severity: "strong", group: "chingar" },
+  { word: "chingada", severity: "strong", group: "chingar" },
+  { word: "chingado", severity: "strong", group: "chingar" },
+  { word: "chingados", severity: "strong", group: "chingar" },
+  { word: "chingadera", severity: "strong", group: "chingar" },
+  { word: "chingón", severity: "moderate", group: "chingar" },
+  { word: "chingona", severity: "moderate", group: "chingar" },
+
+  // === GILIPOLLAS family (strong) — "moron" (Spain) ===
+  { word: "gilipollas", severity: "strong", group: "gilipollas" },
+  { word: "gilipollez", severity: "strong", group: "gilipollas" },
+  { word: "gilipolleces", severity: "strong", group: "gilipollas" },
+
+  // === MARICÓN family (strong) — slur, used as insult ===
+  { word: "maricón", severity: "strong", group: "maricon" },
+  { word: "maricon", severity: "strong", group: "maricon" },
+  { word: "maricones", severity: "strong", group: "maricon" },
+  { word: "marica", severity: "strong", group: "maricon" },
+  { word: "maracos", severity: "strong", group: "maricon" }, // Chilean variant
+  { word: "maraco", severity: "strong", group: "maricon" },
+
+  // === VERGA family (strong) — "dick" (LatAm) ===
+  { word: "verga", severity: "strong", group: "verga" },
+  { word: "vergas", severity: "strong", group: "verga" },
+  { word: "vergazo", severity: "strong", group: "verga" },
+  { word: "vergueando", severity: "strong", group: "verga" },
+
+  // === POLLA family (strong) — "dick" (Spain) ===
+  { word: "polla", severity: "strong", group: "polla" },
+  { word: "pollas", severity: "strong", group: "polla" },
+
+  // === BOLUDO family (strong) — "asshole" (Argentina, also Chile) ===
+  { word: "boludo", severity: "strong", group: "boludo" },
+  { word: "boluda", severity: "strong", group: "boludo" },
+  { word: "boludos", severity: "strong", group: "boludo" },
+  { word: "boludas", severity: "strong", group: "boludo" },
+  { word: "boludez", severity: "moderate", group: "boludo" },
+  { word: "pelotudo", severity: "strong", group: "boludo" },
+  { word: "pelotuda", severity: "strong", group: "boludo" },
+  { word: "pelotudos", severity: "strong", group: "boludo" },
+
+  // ============================================================
+  // CHILEAN (es-CL) specifics — heavy on chilenismos
+  // ============================================================
+
+  // === WEÓN / HUEÓN family (moderate) — Chilean staple ===
+  // Used as filler, friendly, *and* insult — counted as profanity regardless.
+  { word: "weón", severity: "moderate", group: "weon" },
+  { word: "weon", severity: "moderate", group: "weon" },
+  { word: "weones", severity: "moderate", group: "weon" },
+  { word: "weona", severity: "moderate", group: "weon" },
+  { word: "weonas", severity: "moderate", group: "weon" },
+  { word: "weoncito", severity: "moderate", group: "weon" },
+  { word: "weoncita", severity: "moderate", group: "weon" },
+  { word: "hueón", severity: "moderate", group: "weon" },
+  { word: "hueon", severity: "moderate", group: "weon" },
+  { word: "hueones", severity: "moderate", group: "weon" },
+  { word: "huevón", severity: "moderate", group: "weon" },
+  { word: "huevon", severity: "moderate", group: "weon" },
+  { word: "huevones", severity: "moderate", group: "weon" },
+  { word: "huevona", severity: "moderate", group: "weon" },
+  { word: "wn", severity: "moderate", group: "weon" }, // chat abbreviation
+
+  // === AWEONAO / AHUEONADO family (strong) — Chilean "dumbass" ===
+  { word: "aweonao", severity: "strong", group: "aweonao" },
+  { word: "aweoná", severity: "strong", group: "aweonao" },
+  { word: "aweonados", severity: "strong", group: "aweonao" },
+  { word: "aweonadas", severity: "strong", group: "aweonao" },
+  { word: "ahueonao", severity: "strong", group: "aweonao" },
+  { word: "ahueonado", severity: "strong", group: "aweonao" },
+  { word: "ahueonada", severity: "strong", group: "aweonao" },
+  { word: "ahuevonado", severity: "strong", group: "aweonao" },
+  { word: "ahuevonada", severity: "strong", group: "aweonao" },
+  { word: "aweonaos", severity: "strong", group: "aweonao" },
+
+  // === WEA / HUEÁ family (moderate) — Chilean "thing/shit" ===
+  { word: "wea", severity: "moderate", group: "wea" },
+  { word: "weá", severity: "moderate", group: "wea" },
+  { word: "weas", severity: "moderate", group: "wea" },
+  { word: "weás", severity: "moderate", group: "wea" },
+  { word: "huea", severity: "moderate", group: "wea" },
+  { word: "hueá", severity: "moderate", group: "wea" },
+  { word: "hueas", severity: "moderate", group: "wea" },
+  { word: "hueás", severity: "moderate", group: "wea" },
+  { word: "huevada", severity: "moderate", group: "wea" },
+  { word: "huevadas", severity: "moderate", group: "wea" },
+  { word: "huevear", severity: "moderate", group: "wea" },
+  { word: "hueveando", severity: "moderate", group: "wea" },
+  { word: "webear", severity: "moderate", group: "wea" },
+  { word: "webeando", severity: "moderate", group: "wea" },
+
+  // === CULIAO / CULIADO family (strong) — Chilean "asshole/fucker" ===
+  { word: "culiao", severity: "strong", group: "culiao" },
+  { word: "culiá", severity: "strong", group: "culiao" },
+  { word: "culiados", severity: "strong", group: "culiao" },
+  { word: "culiadas", severity: "strong", group: "culiao" },
+  { word: "culiada", severity: "strong", group: "culiao" },
+  { word: "culiado", severity: "strong", group: "culiao" },
+  { word: "culiaos", severity: "strong", group: "culiao" },
+  { word: "culear", severity: "strong", group: "culiao" },
+  { word: "culiar", severity: "strong", group: "culiao" },
+  { word: "culiando", severity: "strong", group: "culiao" },
+
+  // === CONCHETUMARE family (strong) — Chilean "motherfucker" ===
+  // "concha [de] tu madre" — most iconic Chilean insult.
+  { word: "conchetumare", severity: "strong", group: "conchetumare" },
+  { word: "conchesumare", severity: "strong", group: "conchetumare" },
+  { word: "conchatumadre", severity: "strong", group: "conchetumare" },
+  { word: "conchadetumadre", severity: "strong", group: "conchetumare" },
+  { word: "conchesumadre", severity: "strong", group: "conchetumare" },
+  { word: "chuchadetumadre", severity: "strong", group: "conchetumare" },
+  { word: "chuchasumadre", severity: "strong", group: "conchetumare" },
+  // Abbreviations widely used in chats / commits
+  { word: "ctm", severity: "strong", group: "conchetumare" },
+  { word: "csm", severity: "strong", group: "conchetumare" },
+  { word: "qlctm", severity: "strong", group: "conchetumare" },
+
+  // === CHUCHA family (moderate) — Chilean "fuck!" / "damn!" ===
+  { word: "chucha", severity: "moderate", group: "chucha" },
+  { word: "chuchas", severity: "moderate", group: "chucha" },
+  { word: "chuchetas", severity: "moderate", group: "chucha" },
+
+  // === SACOWEA family (strong) — Chilean "fuckup/idiot" ===
+  { word: "sacowea", severity: "strong", group: "sacowea" },
+  { word: "sacoweas", severity: "strong", group: "sacowea" },
+  { word: "sacowetas", severity: "strong", group: "sacowea" },
+  { word: "sacohuea", severity: "strong", group: "sacowea" },
+  { word: "sacohueas", severity: "strong", group: "sacowea" },
+  { word: "sacodehueas", severity: "strong", group: "sacowea" },
+  { word: "sakowea", severity: "strong", group: "sacowea" }, // common typo
+
+  // === CRESTA (moderate) — Chilean "fuck!" / "to hell" ===
+  { word: "cresta", severity: "moderate", group: "cresta" },
+  { word: "crestazo", severity: "moderate", group: "cresta" },
+
+  // === GIL family (moderate) — Chilean "idiot" ===
+  { word: "gil", severity: "moderate", group: "gil" },
+  { word: "giles", severity: "moderate", group: "gil" },
+  { word: "gila", severity: "moderate", group: "gil" },
+
+  // === CAGAR family (strong) — "to shit / fuck up" ===
+  // (Chilean "la cagaste" is everyday but still profanity-tier)
+  { word: "cagar", severity: "strong", group: "cagada" },
+  { word: "cagada", severity: "strong", group: "cagada" },
+  { word: "cagadas", severity: "strong", group: "cagada" },
+  { word: "cagado", severity: "strong", group: "cagada" },
+  { word: "cagados", severity: "strong", group: "cagada" },
+  { word: "cagando", severity: "strong", group: "cagada" },
+  { word: "cagaste", severity: "strong", group: "cagada" },
+  { word: "cagamos", severity: "strong", group: "cagada" },
+  { word: "cagón", severity: "moderate", group: "cagada" },
+  { word: "cagona", severity: "moderate", group: "cagada" },
+
+  // === Chilean / Spanish moderate insults ===
+  { word: "imbécil", severity: "strong", group: "imbecil" },
+  { word: "imbecil", severity: "strong", group: "imbecil" },
+  { word: "imbéciles", severity: "strong", group: "imbecil" },
+  { word: "imbeciles", severity: "strong", group: "imbecil" },
+  { word: "idiota", severity: "moderate", group: "idiota" },
+  { word: "idiotas", severity: "moderate", group: "idiota" },
+  { word: "estúpido", severity: "moderate", group: "estupido" },
+  { word: "estupido", severity: "moderate", group: "estupido" },
+  { word: "estúpida", severity: "moderate", group: "estupido" },
+  { word: "estupida", severity: "moderate", group: "estupido" },
+  { word: "estúpidos", severity: "moderate", group: "estupido" },
+  { word: "estupidos", severity: "moderate", group: "estupido" },
+  { word: "tarado", severity: "moderate", group: "tarado" },
+  { word: "tarada", severity: "moderate", group: "tarado" },
+  { word: "tarados", severity: "moderate", group: "tarado" },
+
+  // === Mild Spanish ===
+  { word: "tonto", severity: "mild", group: "tonto" },
+  { word: "tonta", severity: "mild", group: "tonto" },
+  { word: "tontos", severity: "mild", group: "tonto" },
+  { word: "tontas", severity: "mild", group: "tonto" },
+  { word: "leso", severity: "mild", group: "leso" }, // Chilean "dumb"
+  { word: "lesa", severity: "mild", group: "leso" },
 ];
 
 /**
