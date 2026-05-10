@@ -2,6 +2,7 @@ import { ampAdapter } from "./amp";
 import { claudeAdapter } from "./claude";
 import { clineAdapter } from "./cline";
 import { codexAdapter } from "./codex";
+import { cursorAdapter } from "./cursor";
 import { opencodeAdapter } from "./opencode";
 import { zedAdapter } from "./zed";
 
@@ -25,6 +26,7 @@ export interface AdapterOptions {
 const ADAPTERS: Record<string, () => Adapter> = {
   claude: claudeAdapter,
   codex: codexAdapter,
+  cursor: cursorAdapter,
   opencode: opencodeAdapter,
   amp: ampAdapter,
   cline: clineAdapter,
