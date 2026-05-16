@@ -84,7 +84,7 @@ function parseArgs(args: string[]): ScanOptions {
       console.log(`devrage scan — scan sessions for profanity
 
 Options:
-  --agent, -a <name>   Scan only a specific agent (claude, codex, opencode, amp, cline, pi, zed)
+  --agent, -a <name>   Scan only a specific agent (claude, codex, opencode, amp, cline, gemini, pi, zed)
   --since, -s <date>   Only scan messages after this date (ISO 8601)
   --help, -h           Show this help`);
       process.exit(0);

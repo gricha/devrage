@@ -2,6 +2,7 @@ import { ampAdapter } from "./amp";
 import { claudeAdapter } from "./claude";
 import { clineAdapter } from "./cline";
 import { codexAdapter } from "./codex";
+import { geminiAdapter } from "./gemini";
 import { opencodeAdapter } from "./opencode";
 import { piAdapter } from "./pi";
 import { zedAdapter } from "./zed";
@@ -29,6 +30,7 @@ const ADAPTERS: Record<string, () => Adapter> = {
   opencode: opencodeAdapter,
   amp: ampAdapter,
   cline: clineAdapter,
+  gemini: geminiAdapter,
   pi: piAdapter,
   zed: zedAdapter,
 };
