@@ -16,6 +16,7 @@
     "dist"
   ],
   "scripts": {
+    "prepare": "node build.js",
     "start": "node dist/cli.js",
     "build": "node build.js",
     "dev": "node build.js --watch",
