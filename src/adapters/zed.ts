@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Adapter, AdapterOptions, Message } from "./index";
+import { openReadonlySqliteDatabase } from "./sqlite";
 
 /**
  * Zed stores AI conversations in two places:
@@ -17,8 +18,8 @@ import type { Adapter, AdapterOptions, Message } from "./index";
  *    or ~/Library/Application Support/Zed/db (macOS)
  *    We'd need to query this, but the schema isn't well documented.
  *
- * We support the text thread JSON files for now, and the SQLite agent
- * threads when better-sqlite3 is available.
+ * We support the text thread JSON files for now, and SQLite agent threads
+ * when a local SQLite reader is available.
  */
 
 function getZedPaths(): { conversations: string; db: string } {
@@ -121,24 +122,11 @@ async function* parseAgentThreads(
     return;
   }
 
-  let Database: unknown;
-  try {
-    const mod = await import("better-sqlite3");
-    Database = mod.default ?? mod;
-  } catch {
-    return; // better-sqlite3 not available
-  }
-
   for (const dbFile of dbFiles) {
     const dbPath = join(dbDir, dbFile);
-    let db: import("better-sqlite3").Database;
-
-    try {
-      db = new (Database as new (...args: unknown[]) => import("better-sqlite3").Database)(dbPath, {
-        readonly: true,
-      });
-    } catch {
-      continue; // Can't open this DB
+    const db = await openReadonlySqliteDatabase(dbPath);
+    if (!db) {
+      continue;
     }
 
     try {
@@ -154,7 +142,6 @@ async function* parseAgentThreads(
       );
 
       if (!msgTable) {
-        db.close();
         continue;
       }
 
@@ -166,7 +153,6 @@ async function* parseAgentThreads(
       const hasRole = colNames.includes("role");
 
       if (!hasRole) {
-        db.close();
         continue;
       }
 

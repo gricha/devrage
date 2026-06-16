@@ -12,6 +12,7 @@ const execFileAsync = promisify(execFile);
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const cliPath = join(repoRoot, "dist", "cli.js");
 const ANSI_PATTERN = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
+const HAS_NODE_SQLITE = await hasNodeSqlite();
 
 test("OpenCode cost uses cached models.dev pricing", async () => {
   const root = await mkdtemp(join(tmpdir(), "devrage-opencode-"));
@@ -34,6 +35,57 @@ test("OpenCode cost uses cached models.dev pricing", async () => {
   assert.match(output, /devrage cost/);
   assert.match(output, /gpt-5\.5\s+\$35\.00/);
   assert.doesNotMatch(output, /billed/i);
+});
+
+test(
+  "OpenCode cost works with Node native SQLite",
+  { skip: !HAS_NODE_SQLITE },
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), "devrage-opencode-node-sqlite-"));
+    const dataHome = join(root, "data");
+    const cacheHome = join(root, "cache");
+    const dbPath = join(dataHome, "opencode", "opencode.db");
+
+    await mkdir(dirname(dbPath), { recursive: true });
+    await writePricingCache(cacheHome);
+    createOpenCodeFixture(dbPath);
+
+    const result = await runCliResult(["cost", "--agent", "opencode", "--since", "2026-06-01"], {
+      DEVRAGE_SQLITE_DRIVER: "node",
+      HOME: root,
+      XDG_CACHE_HOME: cacheHome,
+      XDG_DATA_HOME: dataHome,
+    });
+    const output = stripAnsi(result.stdout);
+
+    assert.match(output, /opencode\s+\$35\.00\s+1 req/);
+    assert.match(output, /gpt-5\.5\s+\$35\.00/);
+    assert.doesNotMatch(result.stderr, /ExperimentalWarning/);
+    assert.doesNotMatch(result.stderr, /SQLite support not available/);
+  },
+);
+
+test("OpenCode cost works with better-sqlite3 fallback", async () => {
+  const root = await mkdtemp(join(tmpdir(), "devrage-opencode-better-sqlite3-"));
+  const dataHome = join(root, "data");
+  const cacheHome = join(root, "cache");
+  const dbPath = join(dataHome, "opencode", "opencode.db");
+
+  await mkdir(dirname(dbPath), { recursive: true });
+  await writePricingCache(cacheHome);
+  createOpenCodeFixture(dbPath);
+
+  const output = stripAnsi(
+    await runCli(["cost", "--agent", "opencode", "--since", "2026-06-01"], {
+      DEVRAGE_SQLITE_DRIVER: "better-sqlite3",
+      HOME: root,
+      XDG_CACHE_HOME: cacheHome,
+      XDG_DATA_HOME: dataHome,
+    }),
+  );
+
+  assert.match(output, /opencode\s+\$35\.00\s+1 req/);
+  assert.match(output, /gpt-5\.5\s+\$35\.00/);
 });
 
 test("cost command renders only the cost dashboard", async () => {
@@ -523,6 +575,53 @@ test("Cursor cost reads modern bubble token usage when present", async () => {
   assert.match(output, /gpt-5\.5\s+\$35\.00/);
 });
 
+test("Zed scans SQLite agent thread messages", async () => {
+  const root = await mkdtemp(join(tmpdir(), "devrage-zed-sqlite-"));
+  const dataHome = join(root, "data");
+  const dbDir =
+    process.platform === "darwin"
+      ? join(root, "Library", "Application Support", "Zed", "db")
+      : join(dataHome, "zed", "db");
+  const dbPath = join(dbDir, "0-test.db");
+
+  await mkdir(dbDir, { recursive: true });
+  createZedSqliteFixture(dbPath);
+
+  const output = stripAnsi(
+    await runCli(["scan", "--agent", "zed"], {
+      HOME: root,
+      XDG_DATA_HOME: dataHome,
+    }),
+  );
+
+  assert.match(output, /messages scanned\s+1/);
+  assert.match(output, /total swears\s+1/);
+  assert.match(output, /fuck\s+1/);
+});
+
+test("Zed skips SQLite DBs without double-closing native handles", async () => {
+  const root = await mkdtemp(join(tmpdir(), "devrage-zed-sqlite-skip-"));
+  const dataHome = join(root, "data");
+  const dbDir =
+    process.platform === "darwin"
+      ? join(root, "Library", "Application Support", "Zed", "db")
+      : join(dataHome, "zed", "db");
+  const dbPath = join(dbDir, "0-test.db");
+
+  await mkdir(dbDir, { recursive: true });
+  createZedSqliteFixture(dbPath, { includeRole: false });
+
+  const output = stripAnsi(
+    await runCli(["scan", "--agent", "zed"], {
+      DEVRAGE_SQLITE_DRIVER: "node",
+      HOME: root,
+      XDG_DATA_HOME: dataHome,
+    }),
+  );
+
+  assert.match(output, /messages scanned\s+0/);
+});
+
 test("T3 Code scans projected messages and dedupes usage snapshots", async () => {
   const root = await mkdtemp(join(tmpdir(), "devrage-t3code-"));
   const cacheHome = join(root, "cache");
@@ -592,12 +691,47 @@ test("T3 Code cost maps Claude Code sessions to Anthropic pricing", async () => 
 });
 
 async function runCli(args, env) {
+  const result = await runCliResult(args, env);
+  return result.stdout;
+}
+
+async function runCliResult(args, env) {
+  const childEnv = { ...process.env, ...env };
+  if (!Object.hasOwn(env, "DEVRAGE_SQLITE_DRIVER")) {
+    delete childEnv.DEVRAGE_SQLITE_DRIVER;
+  }
+
   const result = await execFileAsync(process.execPath, [cliPath, ...args], {
     cwd: repoRoot,
     encoding: "utf-8",
-    env: { ...process.env, ...env },
+    env: childEnv,
   });
-  return result.stdout;
+  return result;
+}
+
+async function hasNodeSqlite() {
+  const originalEmitWarning = process.emitWarning;
+  process.emitWarning = (warning, ...args) => {
+    const message = typeof warning === "string" ? warning : warning.message;
+    const type = typeof args[0] === "string" ? args[0] : undefined;
+    if (
+      message === "SQLite is an experimental feature and might change at any time" &&
+      type === "ExperimentalWarning"
+    ) {
+      return;
+    }
+
+    originalEmitWarning(warning, ...args);
+  };
+
+  try {
+    const sqlite = await import("node:sqlite");
+    return typeof sqlite.DatabaseSync === "function";
+  } catch {
+    return false;
+  } finally {
+    process.emitWarning = originalEmitWarning;
+  }
 }
 
 async function readReport(output) {
@@ -995,6 +1129,22 @@ function createCursorCostFixture(dbPath) {
         tokenCount: { inputTokens: 1_000_000, outputTokens: 1_000_000 },
       }),
     );
+  } finally {
+    db.close();
+  }
+}
+
+function createZedSqliteFixture(dbPath, options = {}) {
+  const db = new Database(dbPath);
+  try {
+    if (options.includeRole === false) {
+      db.exec("CREATE TABLE messages (content TEXT)");
+      db.prepare("INSERT INTO messages VALUES (?)").run("please fix this fuck");
+      return;
+    }
+
+    db.exec("CREATE TABLE messages (role TEXT, content TEXT)");
+    db.prepare("INSERT INTO messages VALUES (?, ?)").run("user", "please fix this fuck");
   } finally {
     db.close();
   }

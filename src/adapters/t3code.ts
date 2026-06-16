@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import type { Adapter, AdapterOptions, Message, UsageRecord } from "./index";
+import { openReadonlySqliteDatabase, type SqliteDatabase } from "./sqlite";
 
 /**
  * T3 Code stores server state in SQLite under:
@@ -143,21 +144,12 @@ function resolveHomePath(value: string): string {
   return isAbsolute(value) ? value : resolve(value);
 }
 
-async function openT3Db(dbPath: string): Promise<import("better-sqlite3").Database | null> {
-  try {
-    const BetterSqlite3 = await import("better-sqlite3");
-    const Ctor = BetterSqlite3.default ?? BetterSqlite3;
-    return new (Ctor as unknown as new (...args: unknown[]) => import("better-sqlite3").Database)(
-      dbPath,
-      { readonly: true, fileMustExist: true },
-    );
-  } catch {
-    return null;
-  }
+async function openT3Db(dbPath: string): Promise<SqliteDatabase | null> {
+  return openReadonlySqliteDatabase(dbPath);
 }
 
 function* queryUserMessages(
-  db: import("better-sqlite3").Database,
+  db: SqliteDatabase,
   location: T3DatabaseLocation,
   options?: AdapterOptions,
 ): Generator<Message> {
@@ -203,7 +195,7 @@ function* queryUserMessages(
 }
 
 function* queryUsageRecords(
-  db: import("better-sqlite3").Database,
+  db: SqliteDatabase,
   location: T3DatabaseLocation,
   seen: Set<string>,
   options?: AdapterOptions,
@@ -326,7 +318,7 @@ function providerFromModel(model: string | undefined): string | undefined {
   return model.slice(0, slash);
 }
 
-function readThreadInfo(db: import("better-sqlite3").Database): Map<string, ThreadInfo> {
+function readThreadInfo(db: SqliteDatabase): Map<string, ThreadInfo> {
   const info = new Map<string, ThreadInfo>();
 
   readProjectionThreadModels(db, info);
@@ -335,10 +327,7 @@ function readThreadInfo(db: import("better-sqlite3").Database): Map<string, Thre
   return info;
 }
 
-function readProjectionThreadModels(
-  db: import("better-sqlite3").Database,
-  info: Map<string, ThreadInfo>,
-): void {
+function readProjectionThreadModels(db: SqliteDatabase, info: Map<string, ThreadInfo>): void {
   if (!tableExists(db, "projection_threads")) {
     return;
   }
@@ -387,10 +376,7 @@ function readProjectionThreadModels(
   }
 }
 
-function readProjectionThreadProviders(
-  db: import("better-sqlite3").Database,
-  info: Map<string, ThreadInfo>,
-): void {
+function readProjectionThreadProviders(db: SqliteDatabase, info: Map<string, ThreadInfo>): void {
   if (!hasColumns(db, "projection_thread_sessions", ["thread_id", "provider_name"])) {
     return;
   }
@@ -516,16 +502,12 @@ function t3UsageDedupeKey(input: {
   ]);
 }
 
-function hasColumns(
-  db: import("better-sqlite3").Database,
-  table: string,
-  requiredColumns: string[],
-): boolean {
+function hasColumns(db: SqliteDatabase, table: string, requiredColumns: string[]): boolean {
   const columns = tableColumns(db, table);
   return requiredColumns.every((column) => columns.has(column));
 }
 
-function tableExists(db: import("better-sqlite3").Database, table: string): boolean {
+function tableExists(db: SqliteDatabase, table: string): boolean {
   try {
     const row = db
       .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1")
@@ -536,7 +518,7 @@ function tableExists(db: import("better-sqlite3").Database, table: string): bool
   }
 }
 
-function tableColumns(db: import("better-sqlite3").Database, table: string): Set<string> {
+function tableColumns(db: SqliteDatabase, table: string): Set<string> {
   if (!tableExists(db, table)) {
     return new Set();
   }

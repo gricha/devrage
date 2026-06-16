@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Adapter, AdapterOptions, Message, UsageRecord } from "./index";
+import { openReadonlySqliteDatabase, type SqliteDatabase } from "./sqlite";
 
 /**
  * OpenCode stores sessions in a SQLite database at:
@@ -70,30 +71,21 @@ export function opencodeAdapter(): Adapter {
   };
 }
 
-async function openOpencodeDb(): Promise<import("better-sqlite3").Database | null> {
+async function openOpencodeDb(): Promise<SqliteDatabase | null> {
   const dbPath = getOpencodeDatabasePath();
   if (!dbPath) {
     return null;
   }
 
-  // Dynamic import so the CLI doesn't crash if better-sqlite3 isn't available
-  try {
-    const BetterSqlite3 = await import("better-sqlite3");
-    const Ctor = BetterSqlite3.default ?? BetterSqlite3;
-    return new (Ctor as unknown as new (...args: unknown[]) => import("better-sqlite3").Database)(
-      dbPath,
-      { readonly: true },
-    );
-  } catch {
-    console.warn("devrage: better-sqlite3 not available, skipping OpenCode sessions");
-    return null;
+  const db = await openReadonlySqliteDatabase(dbPath);
+  if (!db) {
+    console.warn("devrage: SQLite support not available, skipping OpenCode sessions");
   }
+
+  return db;
 }
 
-function* queryUserMessages(
-  db: import("better-sqlite3").Database,
-  options?: AdapterOptions,
-): Generator<Message> {
+function* queryUserMessages(db: SqliteDatabase, options?: AdapterOptions): Generator<Message> {
   // Query: join message + part, filter to user role and text parts
   let query = `
     SELECT
@@ -134,10 +126,7 @@ function* queryUserMessages(
 }
 
 /** OpenCode assistant messages store provider/model, billed cost, and token usage in message.data. */
-function* queryUsageRecords(
-  db: import("better-sqlite3").Database,
-  options?: AdapterOptions,
-): Generator<UsageRecord> {
+function* queryUsageRecords(db: SqliteDatabase, options?: AdapterOptions): Generator<UsageRecord> {
   let where = `WHERE json_type(data, '$.tokens') = 'object'`;
   const params: unknown[] = [];
 

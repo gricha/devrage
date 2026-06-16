@@ -3,6 +3,7 @@ import { readdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Adapter, AdapterOptions, Message, UsageRecord } from "./index";
+import { openReadonlySqliteDatabase, type SqliteDatabase } from "./sqlite";
 
 /**
  * Reads Cursor's VS Code-style state stores read-only. Extraction is limited to
@@ -212,20 +213,11 @@ async function* parseCursorUsageStore(
   }
 }
 
-async function openCursorDb(dbPath: string): Promise<import("better-sqlite3").Database | null> {
-  try {
-    const BetterSqlite3 = await import("better-sqlite3");
-    const Ctor = BetterSqlite3.default ?? BetterSqlite3;
-    return new (Ctor as unknown as new (...args: unknown[]) => import("better-sqlite3").Database)(
-      dbPath,
-      { readonly: true },
-    );
-  } catch {
-    return null;
-  }
+async function openCursorDb(dbPath: string): Promise<SqliteDatabase | null> {
+  return openReadonlySqliteDatabase(dbPath);
 }
 
-function readStateRows(db: import("better-sqlite3").Database): StateRow[] {
+function readStateRows(db: SqliteDatabase): StateRow[] {
   const rows: StateRow[] = [];
 
   try {
@@ -300,6 +292,14 @@ function decodeStateValue(value: unknown): string | null {
 
   if (Buffer.isBuffer(value)) {
     return value.toString("utf-8");
+  }
+
+  if (value instanceof Uint8Array) {
+    return Buffer.from(value).toString("utf-8");
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    return Buffer.from(value.buffer, value.byteOffset, value.byteLength).toString("utf-8");
   }
 
   return null;
