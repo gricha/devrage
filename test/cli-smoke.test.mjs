@@ -425,6 +425,68 @@ test("Codex cost dedupes duplicate rollout files with the same session id", asyn
   assert.doesNotMatch(output, /2 req/);
 });
 
+test("Codex cost skips parent usage replayed into subagent rollouts", async () => {
+  const root = await mkdtemp(join(tmpdir(), "devrage-codex-subagent-replay-"));
+  const cacheHome = join(root, "cache");
+  const sessionPath = join(
+    root,
+    ".codex",
+    "sessions",
+    "2026",
+    "07",
+    "21",
+    "rollout-2026-07-21T03-38-56-019f82c1-550e-72f1-b4db-2971ca228cdd.jsonl",
+  );
+  const childSessionId = "019f82c1-550e-72f1-b4db-2971ca228cdd";
+  const parentSessionId = "019f61aa-3eb2-7b11-a7bb-a53ca33339ba";
+  const replayedUsage = codexUsage({ input_tokens: 1_200_000, total_tokens: 2_200_000 });
+  const lines = [
+    codexSessionMetaLine(childSessionId, {
+      timestamp: "2026-07-21T03:38:56.193Z",
+      threadSource: "subagent",
+      parentSessionId,
+    }),
+    codexSessionMetaLine(parentSessionId, {
+      timestamp: "2026-07-21T03:38:56.193Z",
+      threadSource: "user",
+    }),
+    codexTurnContextLine({ timestamp: "2026-07-21T03:38:56.194Z" }),
+    codexTokenLine({ timestamp: "2026-07-21T03:38:56.195Z" }),
+    codexTaskStartedLine(
+      "019f61aa-f912-7400-aba6-28d67b8b739d",
+      "2026-07-21T03:38:56.196Z",
+      1_784_050_022,
+    ),
+    codexTokenLine({
+      timestamp: "2026-07-21T03:38:56.197Z",
+      total: replayedUsage,
+      last: replayedUsage,
+    }),
+    codexTaskStartedLine(
+      "019f82c1-5561-7843-aec5-c6d84dcebc38",
+      "2026-07-21T03:38:56.228Z",
+      1_784_605_136,
+    ),
+    codexTurnContextLine({ timestamp: "2026-07-21T03:38:56.900Z" }),
+    codexTokenLine({ timestamp: "2026-07-21T03:39:05.657Z" }),
+  ];
+
+  await mkdir(dirname(sessionPath), { recursive: true });
+  await writePricingCache(cacheHome);
+  await writeFile(sessionPath, `${lines.join("\n")}\n`);
+
+  const output = stripAnsi(
+    await runCli(["cost", "--agent", "codex"], {
+      HOME: root,
+      XDG_CACHE_HOME: cacheHome,
+    }),
+  );
+
+  assert.match(output, /codex\s+\$35\.05\s+1 req/);
+  assert.match(output, /gpt-5\.5\s+\$35\.05/);
+  assert.doesNotMatch(output, /3 req/);
+});
+
 test("Codex cost falls back to cumulative totals without last usage", async () => {
   const root = await mkdtemp(join(tmpdir(), "devrage-codex-legacy-"));
   const cacheHome = join(root, "cache");
@@ -800,26 +862,47 @@ function claudeAssistantLine() {
   });
 }
 
-function codexTurnContextLine() {
+function codexTurnContextLine(options = {}) {
   return JSON.stringify({
-    timestamp: "2026-06-02T00:00:00.000Z",
+    timestamp: options.timestamp ?? "2026-06-02T00:00:00.000Z",
     type: "turn_context",
     payload: { model: "gpt-5.5" },
   });
 }
 
-function codexSessionMetaLine(id) {
+function codexSessionMetaLine(id, options = {}) {
+  const timestamp = options.timestamp ?? "2026-06-02T00:00:00.000Z";
   return JSON.stringify({
-    timestamp: "2026-06-02T00:00:00.000Z",
+    timestamp,
     type: "session_meta",
     payload: {
       id,
-      timestamp: "2026-06-02T00:00:00.000Z",
+      timestamp,
       cwd: "/fixture",
       originator: "codex-tui",
       cli_version: "0.120.0",
       source: "cli",
       model_provider: "openai",
+      ...(options.threadSource ? { thread_source: options.threadSource } : {}),
+      ...(options.parentSessionId
+        ? {
+            session_id: options.parentSessionId,
+            forked_from_id: options.parentSessionId,
+            parent_thread_id: options.parentSessionId,
+          }
+        : {}),
+    },
+  });
+}
+
+function codexTaskStartedLine(turnId, timestamp, startedAt) {
+  return JSON.stringify({
+    timestamp,
+    type: "event_msg",
+    payload: {
+      type: "task_started",
+      turn_id: turnId,
+      started_at: startedAt,
     },
   });
 }

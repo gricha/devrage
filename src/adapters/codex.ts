@@ -186,6 +186,7 @@ async function* parseCodexUsageJsonl(
   let previousUsageSignature: string | null = null;
   let session = context.session;
   let sawSessionMeta = false;
+  let forkReplayStartedAt: number | null = null;
 
   for await (const line of rl) {
     if (!line.trim()) {
@@ -201,6 +202,20 @@ async function* parseCodexUsageJsonl(
         if (metaSession && !sawSessionMeta) {
           session = metaSession;
           sawSessionMeta = true;
+
+          if (payload?.["thread_source"] === "subagent") {
+            forkReplayStartedAt =
+              uuidV7Timestamp(metaSession) ??
+              timestampMilliseconds(entry["timestamp"]) ??
+              timestampMilliseconds(payload["timestamp"]);
+          }
+        }
+        continue;
+      }
+
+      if (forkReplayStartedAt !== null) {
+        if (isLiveForkTaskStart(entry, payload, forkReplayStartedAt)) {
+          forkReplayStartedAt = null;
         }
         continue;
       }
@@ -351,6 +366,47 @@ function numberValue(value: unknown): number {
 
 function stringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function isLiveForkTaskStart(
+  entry: Record<string, unknown>,
+  payload: Record<string, unknown> | null,
+  forkStartedAt: number,
+): boolean {
+  if (entry["type"] !== "event_msg" || payload?.["type"] !== "task_started") {
+    return false;
+  }
+
+  const taskIdStartedAt = uuidV7Timestamp(stringValue(payload["turn_id"]));
+  if (taskIdStartedAt !== null) {
+    return taskIdStartedAt >= forkStartedAt;
+  }
+
+  const taskStartedAt = timestampMilliseconds(payload["started_at"]);
+  return taskStartedAt !== null && taskStartedAt >= Math.floor(forkStartedAt / 1_000) * 1_000;
+}
+
+function uuidV7Timestamp(value: string | undefined): number | null {
+  const normalized = value?.replaceAll("-", "");
+  if (!normalized || !/^[0-9a-f]{12}7/i.test(normalized)) {
+    return null;
+  }
+
+  const timestamp = Number.parseInt(normalized.slice(0, 12), 16);
+  return Number.isSafeInteger(timestamp) ? timestamp : null;
+}
+
+function timestampMilliseconds(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value >= 1_000_000_000_000 ? value : value * 1_000;
+  }
+
+  if (typeof value === "string") {
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }
+
+  return null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
