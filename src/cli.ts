@@ -47,7 +47,7 @@ async function main(): Promise<void> {
   }
 
   if (command === "--version") {
-    console.log("0.6.3");
+    console.log("0.6.4");
     process.exit(0);
   }
 
