@@ -378,7 +378,11 @@ export async function scan(args: string[]): Promise<void> {
 
 export async function slop(args: string[]): Promise<void> {
   const options = parseArgs(args, "slop");
-  const adapters = options.agent ? [createAdapter(options.agent)] : allAdapters();
+  // T3 Code projects the underlying harness transcripts, so including it in the
+  // default scan double-counts those responses. Explicit --agent t3code still works.
+  const adapters = options.agent
+    ? [createAdapter(options.agent)]
+    : allAdapters().filter((adapter) => adapter.name !== "t3code");
   const spinner = createSpinner(SLOP_SPINNER_MESSAGES);
   const tellTally: Record<string, number> = {};
   const perAgent: Record<string, { messages: number; hits: number; tainted: number }> = {};
@@ -429,20 +433,15 @@ export async function slop(args: string[]): Promise<void> {
   }
 
   const activeAgents = Object.entries(perAgent);
+  const rankedAgents = activeAgents
+    .filter(([, stats]) => stats.hits > 0)
+    .sort(
+      ([leftName, left], [rightName, right]) =>
+        right.hits - left.hits || leftName.localeCompare(rightName),
+    );
   console.log("");
   printReportHeader(options, "slop");
   printSlopOverview(totalMessages, totalHits, taintedMessages);
-
-  if (activeAgents.length > 1) {
-    console.log("");
-    console.log(`  ${sectionTitle("agent slop")}`);
-    for (const [name, stats] of activeAgents) {
-      const rate = stats.messages > 0 ? stats.tainted / stats.messages : 0;
-      console.log(
-        `    ${colorText(name.padEnd(10), agentColor(name))} ${c.bold}${String(stats.hits).padStart(4)}${c.reset} ${c.dim}hits · ${stats.tainted}/${stats.messages} messages (${formatPercent(rate)})${c.reset}`,
-      );
-    }
-  }
 
   if (totalHits > 0) {
     const tells = Object.entries(tellTally).sort(
@@ -454,6 +453,17 @@ export async function slop(args: string[]): Promise<void> {
     for (const [tell, count] of tells.slice(0, 15)) {
       console.log(
         `    ${c.yellow}${tell.padEnd(28)}${c.reset} ${c.bold}${String(count).padStart(4)}${c.reset}`,
+      );
+    }
+  }
+
+  if (activeAgents.length > 1 && rankedAgents.length > 0) {
+    console.log("");
+    console.log(`  ${sectionTitle("agent breakdown")}`);
+    for (const [name, stats] of rankedAgents) {
+      const rate = stats.messages > 0 ? stats.tainted / stats.messages : 0;
+      console.log(
+        `    ${colorText(name.padEnd(10), agentColor(name))} ${c.bold}${String(stats.hits).padStart(4)}${c.reset} ${c.dim}hits · ${stats.tainted}/${stats.messages} messages (${formatPercent(rate)})${c.reset}`,
       );
     }
   }
@@ -908,14 +918,10 @@ function printSlopOverview(
   taintedMessages: number,
 ): void {
   const rate = totalMessages > 0 ? taintedMessages / totalMessages : 0;
+  const messageLabel = totalMessages === 1 ? "message" : "messages";
+  const hitLabel = totalHits === 1 ? "slop hit" : "slop hits";
   console.log(
-    `  ${c.dim}assistant messages${c.reset} ${c.bold}${formatNumber(totalMessages)}${c.reset}`,
-  );
-  console.log(
-    `  ${c.dim}slop hits${c.reset}          ${c.bold}${c.yellow}${formatNumber(totalHits)}${c.reset}`,
-  );
-  console.log(
-    `  ${c.dim}messages with slop${c.reset} ${c.bold}${formatNumber(taintedMessages)}${c.reset} ${c.dim}(${formatPercent(rate)})${c.reset}`,
+    `  ${c.bold}${formatNumber(totalMessages)}${c.reset} ${c.dim}${messageLabel} ·${c.reset} ${c.bold}${c.yellow}${formatNumber(totalHits)}${c.reset} ${c.dim}${hitLabel} ·${c.reset} ${c.bold}${formatNumber(taintedMessages)}${c.reset} ${c.dim}affected (${formatPercent(rate)})${c.reset}`,
   );
 }
 

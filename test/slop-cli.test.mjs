@@ -29,9 +29,7 @@ test("slop scans OpenCode assistant prose and ignores user prose", async () => {
   );
 
   assert.match(slopOutput, /devrage slop/);
-  assert.match(slopOutput, /assistant messages\s+2/);
-  assert.match(slopOutput, /slop hits\s+3/);
-  assert.match(slopOutput, /messages with slop\s+1\s+\(50\.0%\)/);
+  assert.match(slopOutput, /2 messages · 3 slop hits · 1 affected \(50\.0%\)/);
   assert.match(slopOutput, /top slop/);
   assert.match(slopOutput, /you're absolutely right\s+1/);
   assert.match(slopOutput, /load-bearing\s+1/);
@@ -47,6 +45,52 @@ test("slop scans OpenCode assistant prose and ignores user prose", async () => {
   );
   assert.match(scanOutput, /messages scanned\s+1/);
   assert.match(scanOutput, /total swears\s+1/);
+});
+
+test("slop renders a compact ranked breakdown without mirrored T3 Code messages", async () => {
+  const root = await mkdtemp(join(tmpdir(), "devrage-slop-report-"));
+  const dataHome = join(root, "data");
+  const configHome = join(root, "config");
+  const appData = join(root, "appdata");
+  const t3Home = join(root, "t3");
+  const claudePath = join(root, ".claude", "projects", "fixture", "session.jsonl");
+  const codexPath = join(root, ".codex", "sessions", "2026", "08", "01", "rollout.jsonl");
+
+  await mkdir(dirname(claudePath), { recursive: true });
+  await writeFile(
+    claudePath,
+    JSON.stringify({
+      type: "assistant",
+      uuid: "assistant-row-1",
+      timestamp: "2026-08-01T00:00:01.000Z",
+      message: {
+        id: "message-1",
+        role: "assistant",
+        content: [{ type: "text", text: "This is load-bearing." }],
+      },
+    }),
+  );
+  await mkdir(dirname(codexPath), { recursive: true });
+  await writeFile(
+    codexPath,
+    codexMessage("assistant", "output_text", "That is a real gap. I overcomplicated it."),
+  );
+  await writeT3SlopFixture(t3Home);
+
+  const output = stripAnsi(
+    await runCli(["slop"], {
+      APPDATA: appData,
+      HOME: root,
+      T3CODE_HOME: t3Home,
+      XDG_CONFIG_HOME: configHome,
+      XDG_DATA_HOME: dataHome,
+    }),
+  );
+
+  assert.match(output, /2 messages · 3 slop hits · 2 affected \(100\.0%\)/);
+  assert.ok(output.indexOf("top slop") < output.indexOf("agent breakdown"));
+  assert.ok(output.indexOf("codex") < output.indexOf("claude"));
+  assert.doesNotMatch(output, /agent slop|t3code|0 hits/);
 });
 
 test("slop reads Claude assistant content once", async () => {
@@ -79,8 +123,7 @@ test("slop reads Claude assistant content once", async () => {
 
   const output = stripAnsi(await runCli(["slop", "--agent", "claude"], { HOME: root }));
 
-  assert.match(output, /assistant messages\s+1/);
-  assert.match(output, /slop hits\s+2/);
+  assert.match(output, /1 message · 2 slop hits · 1 affected/);
   assert.match(output, /honest take\s+1/);
   assert.match(output, /load-bearing\s+1/);
 });
@@ -100,8 +143,7 @@ test("slop reads Codex output_text instead of user input_text", async () => {
 
   const output = stripAnsi(await runCli(["slop", "--agent", "codex"], { HOME: root }));
 
-  assert.match(output, /assistant messages\s+1/);
-  assert.match(output, /slop hits\s+2/);
+  assert.match(output, /1 message · 2 slop hits · 1 affected/);
   assert.match(output, /real gap\s+1/);
   assert.match(output, /I overcomplicated it\s+1/);
   assert.doesNotMatch(output, /tapestry\s+1/);
@@ -123,8 +165,7 @@ test("slop reads Cursor assistant bubbles and skips user bubbles", async () => {
     }),
   );
 
-  assert.match(output, /assistant messages\s+1/);
-  assert.match(output, /slop hits\s+1/);
+  assert.match(output, /1 message · 1 slop hit · 1 affected/);
   assert.match(output, /key insight\s+1/);
   assert.doesNotMatch(output, /delve\s+1/);
 });
@@ -152,8 +193,7 @@ test("slop reads assistant roles from Amp, Cline, Pi, T3 Code, and Zed", async (
 
   for (const [agent, env] of cases) {
     const output = stripAnsi(await runCli(["slop", "--agent", agent], env));
-    assert.match(output, /assistant messages\s+1/, agent);
-    assert.match(output, /slop hits\s+1/, agent);
+    assert.match(output, /1 message · 1 slop hit · 1 affected/, agent);
     assert.match(output, /load-bearing\s+1/, agent);
     assert.doesNotMatch(output, /delve\s+1/, agent);
   }
