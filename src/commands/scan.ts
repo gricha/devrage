@@ -905,10 +905,16 @@ function jsonForScript(value: unknown): string {
 function printReportHeader(options: ScanOptions, label = "report"): void {
   const scope =
     options.rangeLabel ??
-    (options.since ? `since ${formatDate(options.since)}` : "all local history");
-  const agent = options.agent ? ` · ${options.agent}` : "";
+    (options.since
+      ? `since ${formatDate(options.since)}`
+      : label === "slop"
+        ? undefined
+        : "all local history");
+  const context = [scope, options.agent].filter(Boolean).join(" · ");
   console.log(`  ${c.bold}${c.red}devrage${c.reset} ${c.dim}${label}${c.reset}`);
-  console.log(`  ${c.dim}${scope}${agent}${c.reset}`);
+  if (context) {
+    console.log(`  ${c.dim}${context}${c.reset}`);
+  }
   console.log(`  ${c.dim}${"─".repeat(54)}${c.reset}`);
 }
 

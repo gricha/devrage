@@ -90,7 +90,7 @@ test("slop renders a compact ranked breakdown without mirrored T3 Code messages"
   assert.match(output, /2 messages · 3 slop hits · 2 affected \(100\.0%\)/);
   assert.ok(output.indexOf("top slop") < output.indexOf("agent breakdown"));
   assert.ok(output.indexOf("codex") < output.indexOf("claude"));
-  assert.doesNotMatch(output, /agent slop|t3code|0 hits/);
+  assert.doesNotMatch(output, /all local history|agent slop|t3code|0 hits/);
 });
 
 test("slop reads Claude assistant content once", async () => {
