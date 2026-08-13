@@ -32,9 +32,11 @@ test("slop scans OpenCode assistant prose and ignores user prose", async () => {
   assert.match(slopOutput, /assistant messages\s+2/);
   assert.match(slopOutput, /slop hits\s+3/);
   assert.match(slopOutput, /messages with slop\s+1\s+\(50\.0%\)/);
+  assert.match(slopOutput, /top slop/);
   assert.match(slopOutput, /you're absolutely right\s+1/);
   assert.match(slopOutput, /load-bearing\s+1/);
   assert.match(slopOutput, /it's not X, it's Y\s+1/);
+  assert.doesNotMatch(slopOutput, /top tells|slop flavors/);
   assert.doesNotMatch(slopOutput, /delve\s+1/);
 
   const scanOutput = stripAnsi(

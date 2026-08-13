@@ -10,7 +10,7 @@ import {
 } from "../adapters/index";
 import { detect } from "../detector/index";
 import { getPricingCachePath, loadPricingCatalog, summarizeUsage } from "../pricing/index";
-import { detectSlop, type SlopCategory } from "../slop/index";
+import { detectSlop } from "../slop/index";
 
 // ANSI color helpers — no dependencies needed
 const c = {
@@ -381,7 +381,6 @@ export async function slop(args: string[]): Promise<void> {
   const adapters = options.agent ? [createAdapter(options.agent)] : allAdapters();
   const spinner = createSpinner(SLOP_SPINNER_MESSAGES);
   const tellTally: Record<string, number> = {};
-  const categoryTally: Partial<Record<SlopCategory, number>> = {};
   const perAgent: Record<string, { messages: number; hits: number; tainted: number }> = {};
   let totalMessages = 0;
   let totalHits = 0;
@@ -414,7 +413,6 @@ export async function slop(args: string[]): Promise<void> {
 
         for (const match of result.matches) {
           tellTally[match.tell] = (tellTally[match.tell] ?? 0) + 1;
-          categoryTally[match.category] = (categoryTally[match.category] ?? 0) + 1;
         }
       }
 
@@ -452,22 +450,10 @@ export async function slop(args: string[]): Promise<void> {
         rightCount - leftCount || left.localeCompare(right),
     );
     console.log("");
-    console.log(`  ${sectionTitle("top tells")}`);
+    console.log(`  ${sectionTitle("top slop")}`);
     for (const [tell, count] of tells.slice(0, 15)) {
       console.log(
         `    ${c.yellow}${tell.padEnd(28)}${c.reset} ${c.bold}${String(count).padStart(4)}${c.reset}`,
-      );
-    }
-
-    const categories = Object.entries(categoryTally).sort(
-      ([left, leftCount], [right, rightCount]) =>
-        (rightCount ?? 0) - (leftCount ?? 0) || left.localeCompare(right),
-    );
-    console.log("");
-    console.log(`  ${sectionTitle("slop flavors")}`);
-    for (const [category, count] of categories) {
-      console.log(
-        `    ${c.cyan}${category.padEnd(28)}${c.reset} ${c.bold}${String(count).padStart(4)}${c.reset}`,
       );
     }
   }
