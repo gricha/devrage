@@ -88,13 +88,15 @@ export interface UsageRecord {
 
 export interface Adapter {
   name: string;
-  /** Discover and yield all user messages from local session storage */
+  /** Discover and yield messages from local session storage (user messages by default). */
   messages(options?: AdapterOptions): AsyncGenerator<Message>;
   /** Discover and yield token/cost accounting rows when the agent exposes them */
   usage?(options?: AdapterOptions): AsyncGenerator<UsageRecord>;
 }
 
 export interface AdapterOptions {
+  /** Message author to read. Defaults to user for backwards compatibility. */
+  role?: "user" | "assistant";
   since?: Date;
 }
 

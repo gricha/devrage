@@ -1,7 +1,7 @@
 {
   "name": "devrage",
   "version": "0.5.8",
-  "description": "Count how many times you swear at your coding agents",
+  "description": "Measure rage, token costs, and AI slop in coding-agent sessions",
   "type": "module",
   "bin": {
     "devrage": "dist/cli.js"

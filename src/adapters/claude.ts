@@ -13,6 +13,7 @@ import type { Adapter, AdapterOptions, Message, UsageRecord } from "./index";
  *   { "type": "human", "message": { "content": [...] } }
  * or sometimes:
  *   { "role": "user", "content": "..." }
+ * Assistant messages use the matching "assistant" type/role and text blocks.
  */
 
 const CLAUDE_DIR = join(homedir(), ".claude", "projects");
@@ -22,7 +23,11 @@ export function claudeAdapter(): Adapter {
     name: "claude",
     async *messages(options?: AdapterOptions): AsyncGenerator<Message> {
       for await (const file of discoverClaudeJsonlFiles()) {
-        yield* parseClaudeJsonl(file.filePath, { ...file, since: options?.since });
+        yield* parseClaudeJsonl(file.filePath, {
+          ...file,
+          role: options?.role ?? "user",
+          since: options?.since,
+        });
       }
     },
     async *usage(options?: AdapterOptions): AsyncGenerator<UsageRecord> {
@@ -86,12 +91,18 @@ async function* discoverClaudeJsonlFiles(): AsyncGenerator<{
 
 async function* parseClaudeJsonl(
   filePath: string,
-  context: { session: string; project: string; since?: Date },
+  context: {
+    session: string;
+    project: string;
+    role: "user" | "assistant";
+    since?: Date;
+  },
 ): AsyncGenerator<Message> {
   const rl = createInterface({
     input: createReadStream(filePath, { encoding: "utf-8" }),
     crlfDelay: Infinity,
   });
+  const seenAssistantRows = new Set<string>();
 
   for await (const line of rl) {
     if (!line.trim()) {
@@ -100,7 +111,7 @@ async function* parseClaudeJsonl(
 
     try {
       const entry = JSON.parse(line) as Record<string, unknown>;
-      const text = extractUserText(entry);
+      const text = extractMessageText(entry, context.role);
       if (!text) {
         continue;
       }
@@ -111,6 +122,16 @@ async function* parseClaudeJsonl(
         if (ts < context.since) {
           continue;
         }
+      }
+
+      if (context.role === "assistant") {
+        const message = asRecord(entry["message"]);
+        const messageId = stringValue(message?.["id"]) ?? stringValue(entry["uuid"]);
+        const dedupeKey = `${messageId ?? timestamp ?? ""}\u0000${text}`;
+        if (seenAssistantRows.has(dedupeKey)) {
+          continue;
+        }
+        seenAssistantRows.add(dedupeKey);
       }
 
       yield {
@@ -125,10 +146,13 @@ async function* parseClaudeJsonl(
   }
 }
 
-function extractUserText(entry: Record<string, unknown>): string | null {
-  // Format: { "type": "user", "message": { "role": "user", "content": "..." } }
-  if (entry["type"] === "user") {
-    const message = entry["message"] as Record<string, unknown> | undefined;
+function extractMessageText(
+  entry: Record<string, unknown>,
+  role: "user" | "assistant",
+): string | null {
+  // Format: { "type": "user"|"assistant", "message": { "role": ..., "content": ... } }
+  if (entry["type"] === role) {
+    const message = asRecord(entry["message"]);
     if (!message) {
       return null;
     }
@@ -136,16 +160,16 @@ function extractUserText(entry: Record<string, unknown>): string | null {
   }
 
   // Legacy format: { "type": "human", "message": { "content": [...] } }
-  if (entry["type"] === "human") {
-    const message = entry["message"] as Record<string, unknown> | undefined;
+  if (role === "user" && entry["type"] === "human") {
+    const message = asRecord(entry["message"]);
     if (!message) {
       return null;
     }
     return contentToString(message["content"]);
   }
 
-  // Flat format: { "role": "user", "content": "..." }
-  if (entry["role"] === "user") {
+  // Flat format: { "role": "user"|"assistant", "content": "..." }
+  if (entry["role"] === role) {
     return contentToString(entry["content"]);
   }
 

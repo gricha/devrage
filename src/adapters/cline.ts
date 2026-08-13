@@ -81,6 +81,7 @@ export function clineAdapter(): Adapter {
     name: "cline",
     async *messages(options?: AdapterOptions): AsyncGenerator<Message> {
       const taskDirs = getClineTaskDirs();
+      const role = options?.role ?? "user";
 
       for (const tasksDir of taskDirs) {
         let taskIds: string[];
@@ -108,7 +109,7 @@ export function clineAdapter(): Adapter {
             }
 
             for (const msg of messages) {
-              if (msg.role !== "user") {
+              if (msg.role !== role) {
                 continue;
               }
 

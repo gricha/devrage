@@ -1,8 +1,9 @@
-import { cost, scan } from "./commands/scan";
+import { cost, scan, slop } from "./commands/scan";
 
 const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
   cost,
   scan,
+  slop,
 };
 
 const OPTIONS_WITH_VALUES = new Set(["--agent", "-a", "--since", "-s"]);
@@ -13,7 +14,7 @@ interface ParsedCommand {
 }
 
 function usage(): void {
-  console.log(`devrage — count how many times you swear at your coding agents
+  console.log(`devrage — measure rage, cost, and AI slop in coding-agent sessions
 
 Usage:
   devrage <command> [options]
@@ -21,6 +22,7 @@ Usage:
 Commands:
   cost          Show API-equivalent coding agent cost
   scan          Scan sessions for profanity
+  slop          Scan agent responses for common AI-isms
 
 Options:
   --help, -h    Show this help message
@@ -29,7 +31,9 @@ Options:
 Examples:
   devrage cost
   devrage scan
+  devrage slop
   devrage scan --agent claude
+  devrage slop --agent codex
   devrage scan --since 2025-01-01`);
 }
 

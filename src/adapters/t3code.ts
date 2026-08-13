@@ -9,7 +9,7 @@ import { openReadonlySqliteDatabase, type SqliteDatabase } from "./sqlite";
  *   ~/.t3/userdata/state.sqlite
  *   ~/.t3/dev/state.sqlite
  *
- * User text is projected into projection_thread_messages. Token usage arrives
+ * User and assistant text is projected into projection_thread_messages. Token usage arrives
  * in provider runtime as thread.token-usage.updated, then is persisted as a
  * thread.activity-appended event with activity.kind === "context-window.updated".
  */
@@ -70,7 +70,7 @@ export function t3codeAdapter(): Adapter {
         }
 
         try {
-          yield* queryUserMessages(db, location, options);
+          yield* queryMessages(db, location, options);
         } finally {
           db.close();
         }
@@ -148,7 +148,7 @@ async function openT3Db(dbPath: string): Promise<SqliteDatabase | null> {
   return openReadonlySqliteDatabase(dbPath);
 }
 
-function* queryUserMessages(
+function* queryMessages(
   db: SqliteDatabase,
   location: T3DatabaseLocation,
   options?: AdapterOptions,
@@ -163,9 +163,9 @@ function* queryUserMessages(
   let query = `
     SELECT thread_id, created_at, text
     FROM projection_thread_messages
-    WHERE role = 'user'
+    WHERE role = ?
   `;
-  const params: unknown[] = [];
+  const params: unknown[] = [options?.role ?? "user"];
   if (options?.since) {
     query += ` AND created_at >= ?`;
     params.push(options.since.toISOString());

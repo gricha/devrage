@@ -12,10 +12,10 @@ import type { Adapter, AdapterOptions, Message, UsageRecord } from "./index";
  * Each line is JSON with structure:
  *   { "timestamp": "...", "type": "response_item", "payload": { "type": "message", "role": "user", "content": [...] } }
  *
- * User messages have payload.role === "user" and content is an array of
- *   { "type": "input_text", "text": "..." }
+ * User messages use payload.role === "user" with input_text parts. Assistant
+ * messages use payload.role === "assistant" with output_text parts.
  *
- * We skip messages that are just environment context injections.
+ * We skip user messages that are just environment context injections.
  */
 
 const CODEX_SESSIONS_DIR = join(homedir(), ".codex", "sessions");
@@ -25,7 +25,11 @@ export function codexAdapter(): Adapter {
     name: "codex",
     async *messages(options?: AdapterOptions): AsyncGenerator<Message> {
       for await (const file of discoverCodexSessionFiles(CODEX_SESSIONS_DIR)) {
-        yield* parseCodexJsonl(file.filePath, { session: file.session, since: options?.since });
+        yield* parseCodexJsonl(file.filePath, {
+          session: file.session,
+          role: options?.role ?? "user",
+          since: options?.since,
+        });
       }
     },
     async *usage(options?: AdapterOptions): AsyncGenerator<UsageRecord> {
@@ -79,7 +83,7 @@ function sessionFromRolloutFileName(fileName: string): string {
 
 async function* parseCodexJsonl(
   filePath: string,
-  context: { session: string; since?: Date },
+  context: { session: string; role: "user" | "assistant"; since?: Date },
 ): AsyncGenerator<Message> {
   const rl = createInterface({
     input: createReadStream(filePath, { encoding: "utf-8" }),
@@ -94,28 +98,29 @@ async function* parseCodexJsonl(
     try {
       const entry = JSON.parse(line) as CodexEntry;
 
-      // Only care about response_item entries with user messages
+      // Visible user and assistant prose is persisted as response_item messages.
       if (entry.type !== "response_item") {
         continue;
       }
 
       const payload = entry.payload;
-      if (!payload || payload.role !== "user") {
+      if (!payload || payload.role !== context.role) {
         continue;
       }
 
-      const text = extractText(payload.content);
+      const text = extractText(payload.content, context.role);
       if (!text) {
         continue;
       }
 
-      // Skip environment context injections (they start with <environment_context>)
-      if (text.startsWith("<environment_context>")) {
-        continue;
-      }
-      // Skip permission/sandbox instructions
-      if (text.startsWith("<permissions instructions>")) {
-        continue;
+      if (context.role === "user") {
+        // Skip environment context and permission injections that are not user-authored prose.
+        if (
+          text.startsWith("<environment_context>") ||
+          text.startsWith("<permissions instructions>")
+        ) {
+          continue;
+        }
       }
 
       if (context.since && entry.timestamp) {
@@ -136,18 +141,17 @@ async function* parseCodexJsonl(
   }
 }
 
-function extractText(content: unknown): string | null {
+function extractText(content: unknown, role: "user" | "assistant"): string | null {
   if (!Array.isArray(content)) {
     return null;
   }
 
+  const textTypes =
+    role === "assistant" ? new Set(["output_text", "text"]) : new Set(["input_text"]);
   const parts = content
     .filter(
       (p): p is { type: string; text: string } =>
-        typeof p === "object" &&
-        p !== null &&
-        p.type === "input_text" &&
-        typeof p.text === "string",
+        typeof p === "object" && p !== null && textTypes.has(p.type) && typeof p.text === "string",
     )
     .map((p) => p.text);
 

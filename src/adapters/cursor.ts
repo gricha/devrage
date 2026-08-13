@@ -7,7 +7,7 @@ import { openReadonlySqliteDatabase, type SqliteDatabase } from "./sqlite";
 
 /**
  * Reads Cursor's VS Code-style state stores read-only. Extraction is limited to
- * known AI keys and confident user-authored message shapes; unreadable DBs skip.
+ * known AI keys and confidently attributed message shapes; unreadable DBs skip.
  */
 
 const CANDIDATE_KEY_PREFIXES = [
@@ -128,7 +128,7 @@ async function* parseCursorStore(
           continue;
         }
 
-        for (const message of extractCursorMessages(parsed, row.key)) {
+        for (const message of extractCursorMessages(parsed, row.key, options?.role ?? "user")) {
           const text = message.text.trim();
           if (!isLikelyMessageText(text)) {
             continue;
@@ -305,25 +305,37 @@ function decodeStateValue(value: unknown): string | null {
   return null;
 }
 
-function extractCursorMessages(root: unknown, rowKey: string): ExtractedMessage[] {
+function extractCursorMessages(
+  root: unknown,
+  rowKey: string,
+  role: "user" | "assistant",
+): ExtractedMessage[] {
   if (rowKey.startsWith("bubbleId:")) {
-    const message = extractCursorBubbleMessage(root, rowKey);
+    const message = extractCursorBubbleMessage(root, rowKey, role);
     return message ? [message] : [];
   }
 
   const messages: ExtractedMessage[] = [];
-  collectRoleMessages(root, messages);
+  collectRoleMessages(root, messages, role);
 
-  if (rowKey.startsWith("aiService.prompts") || rowKey.startsWith("aiService.generations")) {
+  if (
+    role === "user" &&
+    (rowKey.startsWith("aiService.prompts") || rowKey.startsWith("aiService.generations"))
+  ) {
     collectPromptMessages(root, messages);
   }
 
   return uniqueMessages(messages);
 }
 
-function extractCursorBubbleMessage(root: unknown, rowKey: string): ExtractedMessage | null {
+function extractCursorBubbleMessage(
+  root: unknown,
+  rowKey: string,
+  role: "user" | "assistant",
+): ExtractedMessage | null {
   const record = asRecord(root);
-  if (!record || numberValue(record["type"]) !== 1) {
+  const expectedType = role === "user" ? 1 : 2;
+  if (!record || numberValue(record["type"]) !== expectedType) {
     return null;
   }
 
@@ -449,6 +461,7 @@ function cursorBubbleSession(rowKey: string): string | undefined {
 function collectRoleMessages(
   value: unknown,
   messages: ExtractedMessage[],
+  role: "user" | "assistant",
   inheritedSession?: string,
   depth = 0,
 ): void {
@@ -458,7 +471,7 @@ function collectRoleMessages(
 
   if (Array.isArray(value)) {
     for (const item of value) {
-      collectRoleMessages(item, messages, inheritedSession, depth + 1);
+      collectRoleMessages(item, messages, role, inheritedSession, depth + 1);
     }
     return;
   }
@@ -469,7 +482,7 @@ function collectRoleMessages(
   }
 
   const session = extractSession(record) ?? inheritedSession;
-  if (isUserAuthored(record)) {
+  if (isAuthoredBy(record, role)) {
     const text = extractMessageText(record);
     if (text) {
       messages.push({ text, timestamp: extractTimestamp(record), session });
@@ -478,7 +491,7 @@ function collectRoleMessages(
 
   for (const child of Object.values(record)) {
     if (typeof child === "object" && child !== null) {
-      collectRoleMessages(child, messages, session, depth + 1);
+      collectRoleMessages(child, messages, role, session, depth + 1);
     }
   }
 }
@@ -529,6 +542,10 @@ function collectPromptMessages(
       collectPromptMessages(child, messages, session, depth + 1);
     }
   }
+}
+
+function isAuthoredBy(record: Record<string, unknown>, role: "user" | "assistant"): boolean {
+  return role === "user" ? isUserAuthored(record) : isAssistantAuthored(record);
 }
 
 function isUserAuthored(record: Record<string, unknown>): boolean {

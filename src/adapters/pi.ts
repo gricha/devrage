@@ -53,7 +53,12 @@ async function* walkPiSessions(
       yield* walkPiSessions(fullPath, options, project ?? entry);
     } else if (entry.endsWith(".jsonl")) {
       const session = entry.replace(".jsonl", "");
-      yield* parsePiJsonl(fullPath, { session, project, since: options?.since });
+      yield* parsePiJsonl(fullPath, {
+        session,
+        project,
+        role: options?.role ?? "user",
+        since: options?.since,
+      });
     }
   }
 }
@@ -88,7 +93,12 @@ async function* walkPiUsageSessions(
 
 async function* parsePiJsonl(
   filePath: string,
-  context: { session: string; project?: string; since?: Date },
+  context: {
+    session: string;
+    project?: string;
+    role: "user" | "assistant";
+    since?: Date;
+  },
 ): AsyncGenerator<Message> {
   const rl = createInterface({
     input: createReadStream(filePath, { encoding: "utf-8" }),
@@ -116,7 +126,7 @@ async function* parsePiJsonl(
       }
 
       const message = entry.message;
-      if (!message || message.role !== "user") {
+      if (!message || message.role !== context.role) {
         continue;
       }
 

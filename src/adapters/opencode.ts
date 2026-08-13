@@ -15,8 +15,8 @@ import { openReadonlySqliteDatabase, type SqliteDatabase } from "./sqlite";
  * message.data: { "role": "user"|"assistant", "time": {...}, "agent": "...", ... }
  * part.data:    { "type": "text", "text": "the user's message" }
  *
- * User messages have role="user" in message.data. The actual text content is in
- * the associated part rows where part.data.type === "text".
+ * Messages carry role="user" or role="assistant" in message.data. Their text is
+ * in associated part rows where part.data.type === "text".
  */
 
 function getOpencodeDatabasePath(): string | null {
@@ -51,7 +51,7 @@ export function opencodeAdapter(): Adapter {
       }
 
       try {
-        yield* queryUserMessages(db, options);
+        yield* queryMessages(db, options);
       } finally {
         db.close();
       }
@@ -85,8 +85,8 @@ async function openOpencodeDb(): Promise<SqliteDatabase | null> {
   return db;
 }
 
-function* queryUserMessages(db: SqliteDatabase, options?: AdapterOptions): Generator<Message> {
-  // Query: join message + part, filter to user role and text parts
+function* queryMessages(db: SqliteDatabase, options?: AdapterOptions): Generator<Message> {
+  // Query: join message + part, filter to the selected role and text parts.
   let query = `
     SELECT
       m.session_id,
@@ -94,11 +94,11 @@ function* queryUserMessages(db: SqliteDatabase, options?: AdapterOptions): Gener
       json_extract(p.data, '$.text') as text
     FROM message m
     JOIN part p ON p.message_id = m.id
-    WHERE json_extract(m.data, '$.role') = 'user'
+    WHERE json_extract(m.data, '$.role') = ?
       AND json_extract(p.data, '$.type') = 'text'
   `;
 
-  const params: unknown[] = [];
+  const params: unknown[] = [options?.role ?? "user"];
   if (options?.since) {
     query += ` AND m.time_created >= ?`;
     params.push(options.since.getTime());

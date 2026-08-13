@@ -10,6 +10,7 @@ import {
 } from "../adapters/index";
 import { detect } from "../detector/index";
 import { getPricingCachePath, loadPricingCatalog, summarizeUsage } from "../pricing/index";
+import { detectSlop, type SlopCategory } from "../slop/index";
 
 // ANSI color helpers — no dependencies needed
 const c = {
@@ -47,6 +48,15 @@ const COST_SPINNER_MESSAGES = [
   "Scanning transcript stores",
   "Crunching token counts",
   "Still working through local history",
+];
+
+const SLOP_SPINNER_MESSAGES = [
+  "Auditing agent prose",
+  "Counting load-bearing insights",
+  "Inspecting suspiciously honest takes",
+  "Measuring corrective juxtaposition",
+  "Checking what earned its keep",
+  "Cataloging chatbot tics",
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -143,7 +153,7 @@ interface CostReportData {
   agents: CostReportAgent[];
 }
 
-function parseArgs(args: string[]): ScanOptions {
+function parseArgs(args: string[], command: "scan" | "slop" = "scan"): ScanOptions {
   const options: ScanOptions = {};
 
   for (let i = 0; i < args.length; i++) {
@@ -166,7 +176,18 @@ function parseArgs(args: string[]): ScanOptions {
     } else if (arg === "--month") {
       setRelativeRange(options, 30);
     } else if (arg === "--help" || arg === "-h") {
-      console.log(`devrage scan — scan sessions for profanity
+      if (command === "slop") {
+        console.log(`devrage slop — scan coding-agent responses for AI-isms
+
+Options:
+  --agent, -a <name>   Scan only a specific agent (claude, codex, cursor, opencode, amp, cline, pi, t3code, zed)
+  --since, -s <date>   Only scan responses after this date (ISO 8601)
+  --day, --days [n]    Only scan the last n days (default: 1)
+  --week               Only scan the last 7 days
+  --month              Only scan the last 30 days
+  --help, -h           Show this help`);
+      } else {
+        console.log(`devrage scan — scan sessions for profanity
 
 Options:
   --agent, -a <name>   Scan only a specific agent (claude, codex, cursor, opencode, amp, cline, pi, t3code, zed)
@@ -175,6 +196,7 @@ Options:
   --week               Only scan the last 7 days
   --month              Only scan the last 30 days
   --help, -h           Show this help`);
+      }
       process.exit(0);
     }
   }
@@ -350,6 +372,112 @@ export async function scan(args: string[]): Promise<void> {
   console.log("");
   if (totalSwears === 0) {
     console.log(`  ${c.green}squeaky clean! not a single swear found.${c.reset}`);
+    console.log("");
+  }
+}
+
+export async function slop(args: string[]): Promise<void> {
+  const options = parseArgs(args, "slop");
+  const adapters = options.agent ? [createAdapter(options.agent)] : allAdapters();
+  const spinner = createSpinner(SLOP_SPINNER_MESSAGES);
+  const tellTally: Record<string, number> = {};
+  const categoryTally: Partial<Record<SlopCategory, number>> = {};
+  const perAgent: Record<string, { messages: number; hits: number; tainted: number }> = {};
+  let totalMessages = 0;
+  let totalHits = 0;
+  let taintedMessages = 0;
+
+  spinner.start();
+  try {
+    for (const adapter of adapters) {
+      let agentMessages = 0;
+      let agentHits = 0;
+      let agentTainted = 0;
+      spinner.update();
+
+      for await (const message of adapter.messages({
+        role: "assistant",
+        since: options.since,
+      })) {
+        totalMessages++;
+        agentMessages++;
+
+        const result = detectSlop(message.text);
+        if (result.count === 0) {
+          continue;
+        }
+
+        totalHits += result.count;
+        agentHits += result.count;
+        taintedMessages++;
+        agentTainted++;
+
+        for (const match of result.matches) {
+          tellTally[match.tell] = (tellTally[match.tell] ?? 0) + 1;
+          categoryTally[match.category] = (categoryTally[match.category] ?? 0) + 1;
+        }
+      }
+
+      if (agentMessages > 0) {
+        perAgent[adapter.name] = {
+          messages: agentMessages,
+          hits: agentHits,
+          tainted: agentTainted,
+        };
+      }
+    }
+  } finally {
+    spinner.stop();
+  }
+
+  const activeAgents = Object.entries(perAgent);
+  console.log("");
+  printReportHeader(options, "slop");
+  printSlopOverview(totalMessages, totalHits, taintedMessages);
+
+  if (activeAgents.length > 1) {
+    console.log("");
+    console.log(`  ${sectionTitle("agent slop")}`);
+    for (const [name, stats] of activeAgents) {
+      const rate = stats.messages > 0 ? stats.tainted / stats.messages : 0;
+      console.log(
+        `    ${colorText(name.padEnd(10), agentColor(name))} ${c.bold}${String(stats.hits).padStart(4)}${c.reset} ${c.dim}hits · ${stats.tainted}/${stats.messages} messages (${formatPercent(rate)})${c.reset}`,
+      );
+    }
+  }
+
+  if (totalHits > 0) {
+    const tells = Object.entries(tellTally).sort(
+      ([left, leftCount], [right, rightCount]) =>
+        rightCount - leftCount || left.localeCompare(right),
+    );
+    console.log("");
+    console.log(`  ${sectionTitle("top tells")}`);
+    for (const [tell, count] of tells.slice(0, 15)) {
+      console.log(
+        `    ${c.yellow}${tell.padEnd(28)}${c.reset} ${c.bold}${String(count).padStart(4)}${c.reset}`,
+      );
+    }
+
+    const categories = Object.entries(categoryTally).sort(
+      ([left, leftCount], [right, rightCount]) =>
+        (rightCount ?? 0) - (leftCount ?? 0) || left.localeCompare(right),
+    );
+    console.log("");
+    console.log(`  ${sectionTitle("slop flavors")}`);
+    for (const [category, count] of categories) {
+      console.log(
+        `    ${c.cyan}${category.padEnd(28)}${c.reset} ${c.bold}${String(count).padStart(4)}${c.reset}`,
+      );
+    }
+  }
+
+  console.log("");
+  if (totalMessages === 0) {
+    console.log(`  ${c.gray}no assistant messages found.${c.reset}`);
+    console.log("");
+  } else if (totalHits === 0) {
+    console.log(`  ${c.green}suspiciously human. not a single slop tell found.${c.reset}`);
     console.log("");
   }
 }
@@ -778,14 +906,31 @@ function jsonForScript(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
-function printReportHeader(options: ScanOptions): void {
+function printReportHeader(options: ScanOptions, label = "report"): void {
   const scope =
     options.rangeLabel ??
     (options.since ? `since ${formatDate(options.since)}` : "all local history");
   const agent = options.agent ? ` · ${options.agent}` : "";
-  console.log(`  ${c.bold}${c.red}devrage${c.reset} ${c.dim}report${c.reset}`);
+  console.log(`  ${c.bold}${c.red}devrage${c.reset} ${c.dim}${label}${c.reset}`);
   console.log(`  ${c.dim}${scope}${agent}${c.reset}`);
   console.log(`  ${c.dim}${"─".repeat(54)}${c.reset}`);
+}
+
+function printSlopOverview(
+  totalMessages: number,
+  totalHits: number,
+  taintedMessages: number,
+): void {
+  const rate = totalMessages > 0 ? taintedMessages / totalMessages : 0;
+  console.log(
+    `  ${c.dim}assistant messages${c.reset} ${c.bold}${formatNumber(totalMessages)}${c.reset}`,
+  );
+  console.log(
+    `  ${c.dim}slop hits${c.reset}          ${c.bold}${c.yellow}${formatNumber(totalHits)}${c.reset}`,
+  );
+  console.log(
+    `  ${c.dim}messages with slop${c.reset} ${c.bold}${formatNumber(taintedMessages)}${c.reset} ${c.dim}(${formatPercent(rate)})${c.reset}`,
+  );
 }
 
 function printBasicOverview(totalMessages: number, totalSwears: number): void {

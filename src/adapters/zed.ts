@@ -53,7 +53,7 @@ export function zedAdapter(): Adapter {
   };
 }
 
-async function* parseTextThreads(dir: string, _options?: AdapterOptions): AsyncGenerator<Message> {
+async function* parseTextThreads(dir: string, options?: AdapterOptions): AsyncGenerator<Message> {
   if (!existsSync(dir)) {
     return;
   }
@@ -79,8 +79,9 @@ async function* parseTextThreads(dir: string, _options?: AdapterOptions): AsyncG
         continue;
       }
 
+      const role = options?.role ?? "user";
       for (const msg of conversation.messages) {
-        if (msg.role !== "user") {
+        if (msg.role !== role) {
           continue;
         }
 
@@ -102,7 +103,7 @@ async function* parseTextThreads(dir: string, _options?: AdapterOptions): AsyncG
 
 async function* parseAgentThreads(
   dbDir: string,
-  _options?: AdapterOptions,
+  options?: AdapterOptions,
 ): AsyncGenerator<Message> {
   // Zed uses a directory of SQLite databases. The main one is typically
   // a file like 0-dev.db or similar inside the db/ directory.
@@ -162,9 +163,9 @@ async function* parseAgentThreads(
           ? "body"
           : "text";
 
-      let query = `SELECT "${contentCol}" as text FROM "${msgTable}" WHERE role = 'user'`;
+      const query = `SELECT "${contentCol}" as text FROM "${msgTable}" WHERE role = ?`;
 
-      const rows = db.prepare(query).all() as { text: string }[];
+      const rows = db.prepare(query).all(options?.role ?? "user") as { text: string }[];
       for (const row of rows) {
         if (!row.text?.trim()) {
           continue;

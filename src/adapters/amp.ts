@@ -22,6 +22,7 @@ export function ampAdapter(): Adapter {
     name: "amp",
     async *messages(options?: AdapterOptions): AsyncGenerator<Message> {
       const threadsDir = getAmpThreadsDir();
+      const role = options?.role ?? "user";
 
       let files: string[];
       try {
@@ -47,7 +48,7 @@ export function ampAdapter(): Adapter {
           }
 
           for (const msg of thread.messages) {
-            if (msg.role !== "user") {
+            if (msg.role !== role) {
               continue;
             }
 
