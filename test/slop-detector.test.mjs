@@ -17,23 +17,36 @@ test("detectSlop finds the coding-agent tells from the Claude parody", () => {
       "honest take",
       "precise mechanism",
       "load-bearing",
-      "genuinely",
       "and that matters",
     ],
   );
-  assert.equal(result.count, 6);
+  assert.equal(result.count, 5);
 });
 
 test("detectSlop recognizes correction-loop sycophancy", () => {
   const result = detectSlop(
     "Good question — that's a good catch and a real gap. " +
-      "You're right, and that was a real error in my framing.",
+      "You're absolutely right, and you're right to call that out: " +
+      "that was a real error in my framing.",
   );
 
   assert.deepEqual(
     result.matches.map((match) => match.tell),
-    ["good question", "good catch", "real gap", "you're right", "error in my framing"],
+    [
+      "good question",
+      "good catch",
+      "real gap",
+      "you're absolutely right",
+      "you're right to call that out",
+      "error in my framing",
+    ],
   );
+});
+
+test("detectSlop ignores broad conversational wording", () => {
+  const result = detectSlop("Perfect. You're right. This is genuinely useful.");
+
+  assert.deepEqual(result, { count: 0, matches: [] });
 });
 
 test("detectSlop does not flag ordinary engineering vocabulary", () => {

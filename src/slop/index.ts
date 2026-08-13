@@ -66,11 +66,6 @@ const SLOP_SIGNALS: SlopSignal[] = [
     pattern: /\b(?:the\s+)?precise\s+mechanism\b/giu,
   },
   {
-    tell: "genuinely",
-    category: "claude-ism",
-    pattern: /\bgenuinely\b/giu,
-  },
-  {
     tell: "and that matters",
     category: "claude-ism",
     pattern: /\band\s+that\s+matters\b/giu,
@@ -125,11 +120,6 @@ const SLOP_SIGNALS: SlopSignal[] = [
     category: "sycophancy",
     pattern:
       /\byou(?:['’]re|\s+are)\s+right\s+to\s+(?:call|point|flag)\s+(?:me|that|this)\s+out\b/giu,
-  },
-  {
-    tell: "you're right",
-    category: "sycophancy",
-    pattern: /\byou(?:['’]re|\s+are)\s+right\b/giu,
   },
   {
     tell: "good question",
@@ -236,11 +226,6 @@ const SLOP_SIGNALS: SlopSignal[] = [
     tell: "successfully implemented",
     category: "stock prose",
     pattern: /\bsuccessfully\s+(?:added|completed|created|fixed|implemented|resolved|updated)\b/giu,
-  },
-  {
-    tell: "Perfect.",
-    category: "stock prose",
-    pattern: /(?:^|\n)[\t ]*perfect(?=[.!,:])/gimu,
   },
   {
     tell: "Certainly.",
