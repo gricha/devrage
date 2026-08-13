@@ -132,11 +132,6 @@ const SLOP_SIGNALS: SlopSignal[] = [
     pattern: /\b(?:a\s+)?real\s+error\s+in\s+(?:my|the)\s+framing\b/giu,
   },
   {
-    tell: "I was wrong",
-    category: "sycophancy",
-    pattern: /\bi\s+was\s+wrong\b/giu,
-  },
-  {
     tell: "I overcomplicated it",
     category: "sycophancy",
     pattern: /\bi\s+(?:overcomplicated|over-engineered|overthought)\s+(?:this|that|it)\b/giu,
@@ -144,7 +139,6 @@ const SLOP_SIGNALS: SlopSignal[] = [
 
   // Cross-model corporate/chatbot prose, constrained where a raw word is technical.
   { tell: "delve", category: "stock prose", pattern: /\b(?:delve(?:d|s)?|delving)\b/giu },
-  { tell: "crucial", category: "stock prose", pattern: /\bcrucial\b/giu },
   { tell: "pivotal", category: "stock prose", pattern: /\bpivotal\b/giu },
   { tell: "tapestry", category: "stock prose", pattern: /\btapestr(?:y|ies)\b/giu },
   {
@@ -199,11 +193,6 @@ const SLOP_SIGNALS: SlopSignal[] = [
     pattern: /\blet(?:['’]s|\s+us)\s+unpack\s+(?:this|that|it)\b/giu,
   },
   { tell: "at its core", category: "stock prose", pattern: /\bat\s+its\s+core\b/giu },
-  {
-    tell: "successfully implemented",
-    category: "stock prose",
-    pattern: /\bsuccessfully\s+(?:added|completed|created|fixed|implemented|resolved|updated)\b/giu,
-  },
   {
     tell: "Certainly.",
     category: "stock prose",

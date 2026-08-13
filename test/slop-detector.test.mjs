@@ -44,7 +44,8 @@ test("detectSlop recognizes correction-loop sycophancy", () => {
 test("detectSlop ignores broad conversational wording", () => {
   const result = detectSlop(
     "Perfect. You're right. Good question. Good catch. " +
-      "It is genuinely worth noting that this is a comprehensive implementation.",
+      "It is genuinely worth noting that this is a comprehensive implementation. " +
+      "I was wrong: the crucial fix was successfully implemented.",
   );
 
   assert.deepEqual(result, { count: 0, matches: [] });
