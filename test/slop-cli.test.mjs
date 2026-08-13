@@ -92,7 +92,7 @@ test("slop reads Codex output_text instead of user input_text", async () => {
     sessionPath,
     [
       codexMessage("user", "input_text", "This user says tapestry."),
-      codexMessage("assistant", "output_text", "Good catch. That is a real gap."),
+      codexMessage("assistant", "output_text", "That is a real gap. I was wrong."),
     ].join("\n"),
   );
 
@@ -100,8 +100,8 @@ test("slop reads Codex output_text instead of user input_text", async () => {
 
   assert.match(output, /assistant messages\s+1/);
   assert.match(output, /slop hits\s+2/);
-  assert.match(output, /good catch\s+1/);
   assert.match(output, /real gap\s+1/);
+  assert.match(output, /I was wrong\s+1/);
   assert.doesNotMatch(output, /tapestry\s+1/);
 });
 

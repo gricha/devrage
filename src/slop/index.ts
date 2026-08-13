@@ -122,18 +122,6 @@ const SLOP_SIGNALS: SlopSignal[] = [
       /\byou(?:['’]re|\s+are)\s+right\s+to\s+(?:call|point|flag)\s+(?:me|that|this)\s+out\b/giu,
   },
   {
-    tell: "good question",
-    category: "sycophancy",
-    pattern:
-      /\b(?:(?:that(?:['’]s|\s+is)|this\s+is)\s+)?(?:a\s+)?(?:good|great|excellent)\s+question\b/giu,
-  },
-  {
-    tell: "good catch",
-    category: "sycophancy",
-    pattern:
-      /\b(?:(?:that(?:['’]s|\s+is)|this\s+is)\s+)?(?:a\s+)?(?:good|great|excellent)\s+catch\b/giu,
-  },
-  {
     tell: "real gap",
     category: "sycophancy",
     pattern: /\b(?:a\s+)?real\s+gap\b/giu,
@@ -196,11 +184,6 @@ const SLOP_SIGNALS: SlopSignal[] = [
     pattern: /\b(?:(?:it\s+is|it(?:['’]s))\s+)?important\s+to\s+note\b/giu,
   },
   {
-    tell: "worth noting",
-    category: "stock prose",
-    pattern: /\b(?:(?:it\s+is|it(?:['’]s))\s+)?worth\s+noting\b/giu,
-  },
-  {
     tell: "let me break this down",
     category: "stock prose",
     pattern: /\blet\s+(?:me|us)\s+break\s+(?:this|it)\s+down\b/giu,
@@ -216,12 +199,6 @@ const SLOP_SIGNALS: SlopSignal[] = [
     pattern: /\blet(?:['’]s|\s+us)\s+unpack\s+(?:this|that|it)\b/giu,
   },
   { tell: "at its core", category: "stock prose", pattern: /\bat\s+its\s+core\b/giu },
-  {
-    tell: "comprehensive",
-    category: "stock prose",
-    pattern:
-      /\bcomprehensive\s+(?:analysis|approach|coverage|error\s+handling|guide|implementation|overview|solution|suite)\b/giu,
-  },
   {
     tell: "successfully implemented",
     category: "stock prose",
