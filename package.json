@@ -1,6 +1,6 @@
 {
   "name": "devrage",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Measure rage, token costs, and AI slop in coding-agent sessions",
   "type": "module",
   "bin": {
