@@ -387,6 +387,34 @@ test("Codex cost uses last token usage and skips non-billable updates", async ()
   assert.match(output, /gpt-5\.5\s+\$35\.05/);
 });
 
+test("Codex cost includes archived sessions", async () => {
+  const root = await mkdtemp(join(tmpdir(), "devrage-codex-archived-"));
+  const cacheHome = join(root, "cache");
+  const sessionPath = join(
+    root,
+    ".codex",
+    "archived_sessions",
+    "rollout-2026-06-02T00-00-00-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.jsonl",
+  );
+
+  await mkdir(dirname(sessionPath), { recursive: true });
+  await writePricingCache(cacheHome);
+  await writeFile(
+    sessionPath,
+    `${[codexTurnContextLine(), codexUserLine(), codexTokenLine()].join("\n")}\n`,
+  );
+
+  const output = stripAnsi(
+    await runCli(["cost", "--agent", "codex"], {
+      HOME: root,
+      XDG_CACHE_HOME: cacheHome,
+    }),
+  );
+
+  assert.match(output, /codex\s+\$35\.05\s+1 req/);
+  assert.match(output, /gpt-5\.5\s+\$35\.05/);
+});
+
 test("Codex cost dedupes duplicate rollout files with the same session id", async () => {
   const root = await mkdtemp(join(tmpdir(), "devrage-codex-rollbacks-"));
   const cacheHome = join(root, "cache");
@@ -396,7 +424,9 @@ test("Codex cost dedupes duplicate rollout files with the same session id", asyn
     "rollout-2026-06-02T00-00-00-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.jsonl",
   );
   const secondPath = join(
-    sessionDir,
+    root,
+    ".codex",
+    "archived_sessions",
     "rollout-2026-06-02T00-00-03-bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb.jsonl",
   );
   const sessionId = "11111111-1111-1111-1111-111111111111";
@@ -410,6 +440,7 @@ test("Codex cost dedupes duplicate rollout files with the same session id", asyn
   await mkdir(sessionDir, { recursive: true });
   await writePricingCache(cacheHome);
   await writeFile(firstPath, `${lines.join("\n")}\n`);
+  await mkdir(dirname(secondPath), { recursive: true });
   await writeFile(secondPath, `${lines.join("\n")}\n`);
 
   const output = stripAnsi(

@@ -130,7 +130,7 @@ test("slop reads Claude assistant content once", async () => {
 
 test("slop reads Codex output_text instead of user input_text", async () => {
   const root = await mkdtemp(join(tmpdir(), "devrage-slop-codex-"));
-  const sessionPath = join(root, ".codex", "sessions", "2026", "08", "01", "rollout.jsonl");
+  const sessionPath = join(root, ".codex", "archived_sessions", "rollout.jsonl");
 
   await mkdir(dirname(sessionPath), { recursive: true });
   await writeFile(

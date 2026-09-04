@@ -8,6 +8,7 @@ import type { Adapter, AdapterOptions, Message, UsageRecord } from "./index";
 /**
  * Codex stores sessions as JSONL files at:
  *   ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl
+ *   ~/.codex/archived_sessions/rollout-*.jsonl
  *
  * Each line is JSON with structure:
  *   { "timestamp": "...", "type": "response_item", "payload": { "type": "message", "role": "user", "content": [...] } }
@@ -18,33 +19,38 @@ import type { Adapter, AdapterOptions, Message, UsageRecord } from "./index";
  * We skip user messages that are just environment context injections.
  */
 
-const CODEX_SESSIONS_DIR = join(homedir(), ".codex", "sessions");
+const CODEX_HOME = join(homedir(), ".codex");
+const CODEX_SESSION_DIRS = [join(CODEX_HOME, "sessions"), join(CODEX_HOME, "archived_sessions")];
 
 export function codexAdapter(): Adapter {
   return {
     name: "codex",
     async *messages(options?: AdapterOptions): AsyncGenerator<Message> {
-      for await (const file of discoverCodexSessionFiles(CODEX_SESSIONS_DIR)) {
-        yield* parseCodexJsonl(file.filePath, {
-          session: file.session,
-          role: options?.role ?? "user",
-          since: options?.since,
-        });
+      for (const dir of CODEX_SESSION_DIRS) {
+        for await (const file of discoverCodexSessionFiles(dir)) {
+          yield* parseCodexJsonl(file.filePath, {
+            session: file.session,
+            role: options?.role ?? "user",
+            since: options?.since,
+          });
+        }
       }
     },
     async *usage(options?: AdapterOptions): AsyncGenerator<UsageRecord> {
       const seenUsage = new Set<string>();
-      for await (const file of discoverCodexSessionFiles(CODEX_SESSIONS_DIR)) {
-        for await (const record of parseCodexUsageJsonl(file.filePath, {
-          session: file.session,
-          since: options?.since,
-        })) {
-          const key = codexUsageRecordKey(record);
-          if (seenUsage.has(key)) {
-            continue;
+      for (const dir of CODEX_SESSION_DIRS) {
+        for await (const file of discoverCodexSessionFiles(dir)) {
+          for await (const record of parseCodexUsageJsonl(file.filePath, {
+            session: file.session,
+            since: options?.since,
+          })) {
+            const key = codexUsageRecordKey(record);
+            if (seenUsage.has(key)) {
+              continue;
+            }
+            seenUsage.add(key);
+            yield record;
           }
-          seenUsage.add(key);
-          yield record;
         }
       }
     },
